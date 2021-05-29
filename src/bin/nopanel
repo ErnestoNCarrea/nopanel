@@ -25,6 +25,7 @@ else
 fi
 NOPANEL_LIB_CLI=$NOPANEL_LIB/cli
 NOPANEL_STATE=/var/lib/nopanel
+NOPANEL_LOGS=/var/log/nopanel
 NOPANEL_ETC=/etc/nopanel
 
 [ "$NOPANEL_DEBUG" ] && OSAL_DEBUG=1
