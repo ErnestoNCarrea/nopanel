@@ -1,0 +1,42 @@
+#!/bin/bash
+
+nopanel_module_apache_install() {
+    echo "Installing Apache module..."
+
+    osal_service_stop $OSAL_SERVICE_APACHE > /dev/null 2>&1
+    nopanel_config_backup 'apache-install' $OSAL_PATH_APACHE_CONF $OSAL_PATH_APACHE_CONF_D
+
+    osal_package_preinstall
+    osal_package_install $OSAL_PKG_APACHE $OSAL_PKG_APACHE_EXTRA
+
+    mkdir -p $OSAL_PATH_APACHE_CONF_D/domains
+    mkdir -p /var/log/$OSAL_PKG_APACHE/domains
+    chmod a+x /var/log/$OSAL_PKG_APACHE
+    chmod 751 /var/log/$OSAL_PKG_APACHE/domains
+
+    # Enable/disable required modules
+    osal_apache_module_enable rewrite > /dev/null 2>&1
+    osal_apache_module_enable suexec > /dev/null 2>&1
+    osal_apache_module_enable ssl > /dev/null 2>&1
+    osal_apache_module_enable actions > /dev/null 2>&1
+
+    cp -f $NOPANEL_DATA/$OS_BASE/apache/${OSAL_PKG_APACHE}.conf $OSAL_PATH_APACHE_CONF/
+    cp -f $NOPANEL_DATA/$OS_BASE/logrotate/${OSAL_PKG_APACHE} $OSAL_PATH_LOGROTATE_CONF_D/
+
+    if [ "$OS_BASE" = 'debian' ]; then
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default-ssl
+        echo -e "/home\npublic_html/cgi-bin" > /etc/apache2/suexec/www-data
+    elif [ "$OS_BASE" = 'rhel' ]; then
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/ssl.conf
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/welcome.conf
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/userdir.conf
+        echo > $OSAL_PATH_APACHE_CONF_D/dir.conf <<EOL # This file was added by noPanel
+        <IfModule mod_dir.c>
+                DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm
+        </IfModule>
+EOL
+    fi
+
+    osal_kv_write $NOPANEL_ETC/apache.conf 'service_name' $OSAL_SERVICE_APACHE
+}
