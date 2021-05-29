@@ -4,8 +4,8 @@ Release:        1%{?dist}
 Summary:        noPanel CLI
 Group:          System Environment/Base
 License:        GPLv3
-URL:            https://www.nopanel.com
-Vendor:         nopanel.com
+URL:            https://www.nopanel.cc
+Vendor:         nopanel.cc
 Requires:       (redhat-release >= 7) OR (fedora-release-common >= 32)
 Requires:       bash
 Requires:       jq
@@ -24,8 +24,12 @@ This package contains the noPanel command line interface.
 %install
 install -m 0750 -d %{buildroot}/etc/nopanel
 install -m 755 -D "%{_sourcedir}/bin"/* -t "%{buildroot}%{_bindir}/"
+
 mkdir -p "%{buildroot}/usr/local/nopanel/"
 cp -rfa "%{_sourcedir}/lib"/* "%{buildroot}/usr/local/nopanel/"
+
+mkdir -p "%{buildroot}/usr/share/nopanel/"
+cp -rfa "%{_sourcedir}/share"/* "%{buildroot}/usr/share/nopanel/"
 
 %clean
 
@@ -42,6 +46,7 @@ cp -rfa "%{_sourcedir}/lib"/* "%{buildroot}/usr/local/nopanel/"
 %defattr(-,root,root)
 %attr(755,root,root) %{_bindir}/nopanel
 %attr(755,root,root) /usr/local/nopanel/
+%attr(755,root,root) /usr/share/nopanel/
 %attr(755,root,root) /etc/nopanel/
 
 %changelog
