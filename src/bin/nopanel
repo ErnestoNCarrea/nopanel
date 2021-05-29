@@ -1,0 +1,154 @@
+#!/bin/bash
+
+NOPANEL_VERSION=0.1
+
+NOPANEL_ETC=/etc/nopanel/
+
+# Get current script full path
+pushd . > /dev/null
+NOPANEL_BIN="${BASH_SOURCE[0]}"
+if ([ -h "${NOPANEL_BIN}" ]); then
+  while([ -h "${NOPANEL_BIN}" ]); do cd `dirname "$NOPANEL_BIN"`;
+  NOPANEL_BIN=`readlink "${NOPANEL_BIN}"`; done
+fi
+cd `dirname ${NOPANEL_BIN}` > /dev/null
+NOPANEL_BIN=`pwd`;
+popd  > /dev/null
+
+NOPANEL_PREFIX="$(dirname "$NOPANEL_BIN")"
+NOPANEL_LIB=$NOPANEL_PREFIX/lib/nopanel
+NOPANEL_LIB_CLI=$NOPANEL_LIB/cli
+
+[ "$NOPANEL_DEBUG" ] && NOPANEL_DEBUG=1
+
+source $NOPANEL_LIB/osal.inc
+
+npctl() {
+    if [[ -z "$@" ]]; then
+        echo "noPanel: command missing. Try '${0} help' for more information."
+        exit
+    fi
+
+    # Search for command file
+    local cmd_name=''
+    local cmd_file=''
+    for arg in "$@"
+    do
+        # FIXME: secutirity (what if $arg is something like ../../../malicious_code)
+        if [ -f "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
+            # Look for a nopanel-cli file
+            if [ $cmd_name ]; then
+                cmd_name="${cmd_name}_${arg}"
+                cmd_file=$NOPANEL_LIB_CLI/$cmd_file/${arg}
+            else
+                cmd_name=$arg
+                cmd_file=$NOPANEL_LIB_CLI/${arg}
+            fi
+            cmd_type='include'
+            shift
+            break
+        elif [ -d "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
+            # Keep looking inside dirs
+            if [ $cmd_name ]; then
+                cmd_name="${cmd_name}_${arg}"
+                cmd_file="${cmd_file}/${arg}"
+            else
+                cmd_name=$arg
+                cmd_file=$arg
+            fi
+            cmd_type='dir'
+            shift
+        elif [ -x "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
+            # Look for regular executable file
+            if [ $cmd_name ]; then
+                cmd_name="${cmd_name}_${arg}"
+                cmd_file=$NOPANEL_LIB_CLI/$cmd_file/${arg}
+            else
+                cmd_name=$arg
+                cmd_file=$NOPANEL_LIB_CLI/${arg}
+            fi
+            cmd_type='executable'
+            shift
+            break
+        elif [ "$cmd_file" ]; then
+            # We have a partial path, but component not found
+            echo "Unrecognized command: $@ ('$arg' not found in $cmd_file)"
+            return 1
+            break
+        fi
+    done
+
+    # Process the rest of the arguments as --arg or --arg value
+    # https://brianchildress.co/named-parameters-in-bash/
+    params=''
+    for param in "$@"
+    do
+        if [[ $param == *"--"* ]]; then
+            # It's a --parameter
+            if [ "$param_name" ] && [ ! "${!param_name}" ]; then
+                # Previous --arg is empty, so set it to true before continuing
+                declare $param_name=1
+            fi
+            param_name=$(echo "param_${param:2}" | sed 's/-/_/')    # trim --, replace - with _
+            # Add param_name to the list of used params (unless it's there already)
+            [[ $params =~ (^|[[:space:]])$param_name($|[[:space:]]) ]] || params="$params $param_name"
+            last_was='name'
+        else
+            # Not a --parameter, so it's a value
+            if [ "$param_name" ]; then
+                if [ "${!param_name}" ]; then
+                    # Already has value... add to it
+                    declare $param_name="${!param_name} $param"
+                else
+                    # Doesn't have value... initialize
+                    declare $param_name="$param"
+                fi
+            fi
+            last_was='value'
+        fi
+    done
+    # Process trailing --boolean_param
+    if [ "$last_was" == 'name' ]; then
+        declare $param_name=1
+    fi
+
+    # Trim leading space
+    [ "$params" ] && params="${params:1}"
+
+    if [ $cmd_file ]; then
+        if [ "$NOPANEL_DEBUG" ]; then
+            echo "Command file          : $cmd_file"
+            echo "Command type          : $cmd_type"
+            echo "Command function name : nopanel_${cmd_name}()"
+            echo "Remaining arguments   : $@"
+            echo "Parameters used       : $params"
+            echo "Parameter values      : "
+            for param in $params; do
+                echo "    --$param ${!param}"
+            done
+            echo ""
+            echo "*** Now the command itself:"
+            echo ""
+        fi
+
+        if [ "$cmd_type" = 'include' ]; then
+            source $cmd_file
+            nopanel_$cmd_name $@
+        elif [ "$cmd_type" = 'dir' ]; then
+            # Found to dir level, but no file. Assume 'help' command
+            source "$NOPANEL_LIB/${cmd_file}/help"
+            cmd_name_help="${cmd_name}_help"
+            nopanel_$cmd_name_help
+        else
+            $cmd_file $@
+        fi
+    else
+        echo "Unrecognized command: $@"
+        return 1
+    fi
+}
+
+# If this files is _not_ being sourced, act immediately
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+    npctl $@
+fi
