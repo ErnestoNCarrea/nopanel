@@ -8,7 +8,7 @@ fi
 nopanel_init() {
     echo "noPanel version $NOPANEL_VERSION"
 
-    mkdir -p /var/log/nopanel /var/lib/nopanel
+    mkdir -p /var/log/nopanel $NOPANEL_STATE $NOPANEL_ETC
 }
 
 # If this files is _not_ being sourced, act immediately

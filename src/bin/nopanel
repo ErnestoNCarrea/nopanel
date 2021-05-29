@@ -22,8 +22,8 @@ if [[ -f "$NOPANEL_PREFIX/lib/osal.inc" ]]; then
 else
     # Production
     NOPANEL_LIB=/usr/local/nopanel
-    NOPANEL_DATA=/var/lib/nopanel
-    NOPANEL_STATE=/usr/share/nopanel
+    NOPANEL_DATA=/usr/share/nopanel
+    NOPANEL_STATE=/var/lib/nopanel
 fi
 NOPANEL_LIB_CLI=$NOPANEL_LIB/cli
 NOPANEL_ETC=/etc/nopanel
