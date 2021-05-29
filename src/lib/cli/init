@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [[ -z "$NOPANEL_VERSION" ]]; then
+    echo "This file should not be called without the proper environment. Use nopanel CLI instead."
+    exit 1
+fi
+
+nopanel_init() {
+    echo "noPanel version $NOPANEL_VERSION"
+
+    mkdir -p /var/log/nopanel /var/lib/nopanel
+}
+
+# If this files is _not_ being sourced, act immediately
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+    npctl $@
+fi

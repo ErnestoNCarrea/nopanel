@@ -2,8 +2,6 @@
 
 NOPANEL_VERSION=0.1
 
-NOPANEL_ETC=/etc/nopanel/
-
 # Get current script full path
 pushd . > /dev/null
 NOPANEL_BIN="${BASH_SOURCE[0]}"
@@ -16,11 +14,23 @@ NOPANEL_BIN=`pwd`;
 popd  > /dev/null
 
 NOPANEL_PREFIX="$(dirname "$NOPANEL_BIN")"
-NOPANEL_LIB=$NOPANEL_PREFIX/lib/nopanel
+if [[ -f "$NOPANEL_PREFIX/lib/osal.inc" ]]; then
+    # Development, mostly
+    NOPANEL_LIB=$NOPANEL_PREFIX/lib
+    NOPANEL_DATA=$NOPANEL_PREFIX/../share
+    NOPANEL_STATE=$NOPANEL_PREFIX/../var
+else
+    # Production
+    NOPANEL_LIB=/usr/local/nopanel
+    NOPANEL_DATA=/var/lib/nopanel
+    NOPANEL_STATE=/usr/share/nopanel
+fi
 NOPANEL_LIB_CLI=$NOPANEL_LIB/cli
+NOPANEL_ETC=/etc/nopanel
 
-[ "$NOPANEL_DEBUG" ] && NOPANEL_DEBUG=1
+[ "$NOPANEL_DEBUG" ] && OSAL_DEBUG=1
 
+source $NOPANEL_LIB/main.inc
 source $NOPANEL_LIB/osal.inc
 
 npctl() {
