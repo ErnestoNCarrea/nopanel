@@ -18,14 +18,13 @@ if [[ -f "$NOPANEL_PREFIX/lib/osal.inc" ]]; then
     # Development, mostly
     NOPANEL_LIB=$NOPANEL_PREFIX/lib
     NOPANEL_DATA=$NOPANEL_PREFIX/../share
-    NOPANEL_STATE=$NOPANEL_PREFIX/../var
 else
     # Production
     NOPANEL_LIB=/usr/local/nopanel
     NOPANEL_DATA=/usr/share/nopanel
-    NOPANEL_STATE=/var/lib/nopanel
 fi
 NOPANEL_LIB_CLI=$NOPANEL_LIB/cli
+NOPANEL_STATE=/var/lib/nopanel
 NOPANEL_ETC=/etc/nopanel
 
 [ "$NOPANEL_DEBUG" ] && OSAL_DEBUG=1
