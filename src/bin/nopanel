@@ -27,13 +27,14 @@ NOPANEL_LIB_CLI=$NOPANEL_LIB/cli
 NOPANEL_STATE=/var/lib/nopanel
 NOPANEL_LOG=/var/log/nopanel
 NOPANEL_ETC=/etc/nopanel
+NOPANEL_HOME=/home
 
 [ "$NOPANEL_DEBUG" ] && OSAL_DEBUG=1
 
 source $NOPANEL_LIB/main.inc
 source $NOPANEL_LIB/osal.inc
 
-npctl() {
+nopanel() {
     if [[ -z "$@" ]]; then
         echo "noPanel: command missing. Try '${0} help' for more information."
         exit
@@ -160,5 +161,5 @@ npctl() {
 
 # If this files is _not_ being sourced, act immediately
 if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
-    npctl $@
+    nopanel $@
 fi

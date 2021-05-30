@@ -106,6 +106,7 @@ sed_escape() {
 # osal_json_set 'file' 'value'
 osal_json_set() {
     local tmpfile=$(mktemp)
+    [[ -f "$1" ]] || echo '{}' > "$1"
     jq "$2" "$1" > "$tmpfile" && mv "$tmpfile" "$1"
 }
 
