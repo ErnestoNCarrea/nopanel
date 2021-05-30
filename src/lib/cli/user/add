@@ -1,0 +1,90 @@
+#!/bin/bash
+
+nopanel_user_add() {
+    # Add a general group for normal users created by noPanel
+    if [ -z "$(grep ^nopanel-users: /etc/group)" ]; then
+        groupadd --system "nopanel-users"
+    fi
+
+    if [[ "$param_help" ]]; then
+        nopanel user help
+        exit 0
+    fi
+
+    [[ "$param_username" ]] || nopanel_command_return 'error' 'Username not specified'
+    [[ "$param_email" ]] || nopanel_command_return 'error' 'User e-mail address not specified'
+    [[ "$param_password" ]] || nopanel_command_return 'error' 'User password not specified'
+    
+    useradd_params=''
+    USER_HOME="$NOPANEL_HOME/$param_username"
+
+    # Default shell
+    [[ "$param_shell" ]] || param_shell='nologin'
+    param_shell=$(grep -w "$param_shell" /etc/shells | head -n1)
+    [[ "$param_shell" ]] || param_shell='/usr/sbin/nologin'
+
+    if [[ -d "$USER_HOME" ]]; then
+        if [[ "$param_force" ]]; then
+            useradd_params="$useradd_params -M"     # Do not create home directory
+            nopanel_command_echo 'Not creating home directory because it already exists'
+        else
+            nopanel_command_return 'error' 'The user home directory already exists'
+        fi
+    else
+        # Create user home directory
+        useradd_params="$useradd_params -m -d $USER_HOME"
+    fi
+
+    # Add user and set password
+    if id "$param_username" &>/dev/null; then
+        if [[ ! "$param_force" ]]; then
+            nopanel_command_return 'error' 'The user already exists'
+        fi
+    else
+        /usr/sbin/useradd "$param_username" -c "$param_email" $useradd_params > /dev/null 2>&1
+    fi
+    /usr/sbin/usermod --shell "$param_shell" "$param_username" > /dev/null 2>&1
+    /usr/sbin/usermod -d "$USER_HOME" "$param_username" > /dev/null 2>&1
+    
+    echo "$param_username:$param_password" | /usr/sbin/chpasswd
+
+    # Add membership to hestia-users group to non-admin users
+    if [ "$param_username" = "admin" ]; then
+        setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
+    else
+        usermod -a -G "nopanel-users" "$param_username" > /dev/null 2>&1
+        setfacl -m "u:$param_username:r-x" "$USER_HOME" > /dev/null 2>&1
+    fi
+    setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
+
+    # Building directory tree
+    mkdir -p $USER_HOME/conf
+    mkdir -p $NOPANEL_ETC/users
+    USER_JSON=$NOPANEL_ETC/users/${param_username}.json
+    chmod a+x $USER_HOME
+    chattr +i $USER_HOME/conf > /dev/null 2>&1
+
+    # Create default writeable folders
+    mkdir -p $USER_HOME/.config \
+        $USER_HOME/.cache \
+        $USER_HOME/.local \
+        $USER_HOME/.composer \
+        $USER_HOME/.ssh \
+        $USER_HOME/.npm
+
+    chown $param_username:$param_username \
+        $USER_HOME/.config \
+        $USER_HOME/.cache \
+        $USER_HOME/.local \
+        $USER_HOME/.composer \
+        $USER_HOME/.ssh \
+        $USER_HOME/.npm
+
+
+    osal_json_set "$USER_JSON" ".username = \"$param_username\""
+    osal_json_set "$USER_JSON" ".shell = \"$param_shell\""
+    osal_json_set "$USER_JSON" ".email = \"$param_email\""
+    osal_json_set "$USER_JSON" ".contact = \"$param_contact\""
+
+    nopanel_command_return 'ok' 'User added'
+}

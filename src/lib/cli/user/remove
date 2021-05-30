@@ -1,0 +1,24 @@
+#!/bin/bash
+
+nopanel_user_remove() {
+    if [[ "$param_help" ]]; then
+        nopanel user help
+        exit 0
+    fi
+
+    if [[ ! "$param_force" ]]; then
+        nopanel_command_return 'error' 'Refusing to remove user unless --force is used'
+    fi
+
+    [[ "$param_username" ]] || nopanel_command_return 'error' 'Username not specified'
+
+    USER_JSON=$NOPANEL_ETC/users/${param_username}.json
+    chattr -i "$NOPANEL_HOME/$param_username/conf" > /dev/null 2>&1
+    if [[ ! "$param_no_backup" ]]; then
+        nopanel_config_backup "user-remove-$param_username" $NOPANEL_HOME/$param_username $USER_JSON
+    fi
+    /usr/sbin/userdel $param_username > /dev/null 2>&1
+    nopanel_safe_rm "$NOPANEL_HOME/$param_username" $USER_JSON
+
+    nopanel_command_return 'ok' 'User removed'
+}
