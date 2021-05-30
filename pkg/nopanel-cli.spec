@@ -6,7 +6,7 @@ Group:          System Environment/Base
 License:        GPLv3
 URL:            https://www.nopanel.cc
 Vendor:         nopanel.cc
-Requires:       (redhat-release >= 7) OR (fedora-release-common >= 32)
+Requires:       (redhat-release >= 7 or fedora-release-common >= 32)
 Requires:       bash
 Requires:       util-linux
 Requires:       sed
@@ -33,14 +33,14 @@ mkdir -p "%{buildroot}/usr/local/nopanel/"
 cp -rfa "%{_sourcedir}/lib"/* "%{buildroot}/usr/local/nopanel/"
 
 mkdir -p "%{buildroot}/usr/share/nopanel/"
-cp -rfa "%{_sourcedir}/share"/* "%{buildroot}/usr/share/nopanel/"
+cp -rfa "%{_sourcedir}/../share"/* "%{buildroot}/usr/share/nopanel/"
 
 %clean
 
 %pre
 
 %post
-%{_bindir}/nopanel init
+%{_bindir}/nopanel init --interactive
 
 %preun
 
