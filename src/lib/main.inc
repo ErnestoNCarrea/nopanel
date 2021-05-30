@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_command_echo() {
-    if [[ "$param_interactive" ]] && [[ ! "$param_output_silent" ]]; then
+    if [[ "$param_interactive" != "false" ]] && [[ ! "$param_output_silent" ]]; then
         echo "$@"
     fi
     nopanel_command_log "$@"
@@ -12,9 +12,11 @@ nopanel_command_log() {
 }
 
 nopanel_command_return() {
-    if [[ "$param_output_silent" ]]; then
+    if [[ "$param_output_json" ]]; then
+        jq -n ".status=\"$1\"|.message=\"$2\""
+    elif [[ "$param_output_silent" ]]; then
         : # Nothing
-    elif [[ "$param_output_text" ]]; then
+    else
         TERM_COLOR_NONE='\033[0m'
         TERM_COLOR_RED='\033[0;31m'
         TERM_COLOR_GREEN='\033[0;32m'
@@ -25,8 +27,6 @@ nopanel_command_return() {
         else
             echo "[ $1 ]: $2"
         fi
-    else
-        jq -n ".status=\"$1\"|.message=\"$2\""
     fi
 
     if [[ "$1" == "ok" ]]; then
