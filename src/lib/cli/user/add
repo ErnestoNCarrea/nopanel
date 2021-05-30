@@ -76,8 +76,9 @@ nopanel_user_add() {
         $USER_HOME/.npm
 
 
-    local user_exists=$(osal_json_get "$NOPANEL_ETC/nopanel.json" ".users[] | select(.name == \"$param_user\") | .name")
-    [[ "$user_exists" ]] && osal_json_set "$NOPANEL_ETC/nopanel.json" ".users += [{name: \"$param_user\"}]"
+    local user_exists=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .name")
+    [[ "$user_exists" ]] || osal_json_set "$NOPANEL_ETC/users.json" ".users += [{name: \"$param_user\"}]"
+    osal_json_set "$NOPANEL_ETC/users.json" ".users |= map((select(.name == \"$param_user\") | .shell = \"$param_shell\" | .email = \"$param_email\" | .fullname = \"$param_fullname\") // .)"
 
     osal_json_set "$USER_JSON" ".username = \"$param_user\" | .shell = \"$param_shell\""
     [[ $param_email ]] && osal_json_set "$USER_JSON" ".email = \"$param_email\""
