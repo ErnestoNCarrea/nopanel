@@ -44,8 +44,7 @@ nopanel_module_apache_install() {
 EOL
     fi
 
-    osal_json_set "$NOPANEL_ETC/modules.json" ".apache.installed = \"true\""
-    osal_json_set "$NOPANEL_ETC/modules.json" ".apache.serviceName = \"$OSAL_SERVICE_APACHE\"" 
+    osal_json_set "$NOPANEL_ETC/modules.json" ".apache.installed = \"true\" | .apache.serviceName = \"$OSAL_SERVICE_APACHE\"" 
 
     nopanel_command_echo " - Enabling and starting Apache service"
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
