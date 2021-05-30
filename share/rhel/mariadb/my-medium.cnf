@@ -1,0 +1,30 @@
+#########################################################################
+# noPanel MariaDB configuration file (https://docs.nopanel.cc)          #
+# DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!                   #
+#########################################################################
+
+[client]
+
+[mysqld_safe]
+
+[mysqld]
+symbolic-links=0
+local-infile=0
+  
+skip-external-locking
+key_buffer_size = 16M
+max_allowed_packet = 16M
+table_open_cache = 64
+sort_buffer_size = 512K
+net_buffer_length = 8K
+read_buffer_size = 256K
+read_rnd_buffer_size = 512K
+myisam_sort_buffer_size = 8M
+
+innodb_file_per_table
+
+max_connections=100
+max_user_connections=30
+wait_timeout=10
+interactive_timeout=50
+long_query_time=5

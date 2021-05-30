@@ -1,0 +1,92 @@
+#!/bin/bash
+
+nopanel_module_mariadb_install() {
+    nopanel_command_echo "Installing noPanel MariaDB module..."
+
+    local mariadb_version='10.5'
+
+    osal_service_stop $OSAL_SERVICE_MARIADB > /dev/null 2>&1
+    nopanel_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D $OSAL_PATH_MARIADB_DATA
+
+    nopanel_command_echo " - Installing MariaDB package(s)"
+    # Setup repos
+    if [ "$OS_BASE" = 'debian' ]; then
+        cat > /etc/apt/sources.list.d/mariadb.list <<EOL
+# This file was added by noPanel (http://www.nopanel.cc)
+deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/debian $OS_CODENAME main
+EOL
+        apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' > /dev/null 2>&1
+    elif [ "$OS_BASE" = 'ubuntu' ]; then
+        cat > /etc/apt/sources.list.d/mariadb.list <<EOL
+# This file was added by noPanel (http://www.nopanel.cc)
+deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/ubuntu $OS_CODENAME main
+EOL
+        apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' > /dev/null 2>&1
+    elif [ "$OS_BASE" = 'rhel' ]; then
+        # Remove conflicting OS-provided packages
+        osal_package_remove mariadb-server mariadb-gssapi-server
+
+        cat > "/etc/yum.repos.d/mariadb.repo" <<EOL
+# This file was added by noPanel (http://www.nopanel.cc)
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/${mariadb_version}/${OS_TYPE}${OS_VERSION}-amd64
+module_hotfixes=1
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+EOL
+    fi
+
+    osal_package_preinstall > /dev/null 2>&1
+    osal_package_install ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common > /dev/null 2>&1
+
+    nopanel_command_echo " - Creating configuration files and directories"
+
+    local memory=$(grep 'MemTotal' /proc/meminfo |tr ' ' '\n' |grep [0-9])
+    local mycnf="my-small.cnf"
+    if [ $memory -gt 1200000 ]; then
+        mycnf="my-medium.cnf"
+    fi
+
+    # Configuring MariaDB
+    rm -rf $OSAL_DIR_MARIADB_CONF_D
+    mkdir -p $OSAL_DIR_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
+    cp -f $NOPANEL_DATA/$OS_BASE/mariadb/my.cnf $OSAL_DIR_MARIADB_CONF/
+    cp -f $NOPANEL_DATA/$OS_BASE/mariadb/$mycnf $OSAL_DIR_MARIADB_CONF_D/nopanel.cnf
+    if [ ! -d $OSAL_PATH_MARIADB_DATA ]; then
+        nopanel_command_echo " - Creating initial database"
+        mysql_install_db > /dev/null 2>&1
+    fi
+
+    [[ -d  /var/run/mysqld ]] && chown mysql:mysql /var/run/mysqld
+
+    nopanel_command_echo " - Enabling and starting MariaDB service"
+
+    osal_service_enable $OSAL_SERVICE_MARIADB
+    osal_service_start $OSAL_SERVICE_MARIADB
+
+    nopanel_command_echo " - Additional MariaDB configuration"
+
+    if [ ! -f ~/.my.cnf ]; then
+        # If /root/.my.cnf does not exist, secure MariaDB by setting root password
+        local mariadb_root_password=$(osal_gen_pass)
+        mysqladmin -u root password $mariadb_root_password
+        echo -e "[client]\npassword='$mariadb_root_password'\n" > ~/.my.cnf
+        chmod 600 ~/.my.cnf
+    fi
+
+    mysql_upgrade > /dev/null 2>&1
+
+    # Clear MariaDB test users and databases
+    # FIXME: MariaDB 10.4 and up use global_priv
+    mysql -e "DELETE FROM mysql.user WHERE User=''" > /dev/null 2>&1
+    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'" > /dev/null 2>&1
+    mysql -e "DELETE FROM mysql.user WHERE user='';" > /dev/null 2>&1
+    mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > /dev/null 2>&1
+    mysql -e "DROP DATABASE test" > /dev/null 2>&1
+
+    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.installed = \"true\" | .mariadb.serviceName = \"$OSAL_SERVICE_MARIADB\"" 
+    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.host = \"localhost\" | .mariadb.port = 3306 | .mariadb.user = \"root\" | .mariadb.password = \"$mariadb_root_password\""
+        
+    nopanel_command_return 'ok' 'MariaDB module installed'
+}

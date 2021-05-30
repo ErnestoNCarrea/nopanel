@@ -1,0 +1,23 @@
+#!/bin/bash
+
+nopanel_module_mariadb_wipe() {
+    if [[ ! "$param_force" ]]; then
+        nopanel_command_return 'error' 'Refusing to wipe MariaDB unless --force is used'
+    fi
+
+    nopanel_command_echo "Wiping noPanel MariaDB module..."
+
+    osal_service_stop $OSAL_SERVICE_MARIADB > /dev/null 2>&1
+    nopanel_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D $OSAL_PATH_MARIADB_DATA \
+        /etc/apt/sources.list.d/mariadb.list /etc/yum.repos.d/mariadb.repo ~/.my.cnf
+
+    osal_package_remove ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common > /dev/null 2>&1
+
+    nopanel_safe_rm $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D $OSAL_PATH_MARIADB_DATA \
+        /etc/apt/sources.list.d/mariadb.list /etc/yum.repos.d/mariadb.repo ~/.my.cnf
+
+    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.installed = \"false\" | .mariadb.serviceName = \"\"" 
+    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.host = \"localhost\" | .mariadb.port = \"\" | .mariadb.user = \"\" | .mariadb.password = \"\""
+        
+    nopanel_command_return 'ok' 'MariaDB module removed'
+}
