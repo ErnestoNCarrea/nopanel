@@ -8,21 +8,24 @@ fi
 nopanel_init() {
     nopanel_command_echo "Initializing noPanel version $NOPANEL_VERSION"
 
-    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
-    chmod 0750 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
-
-    mkdir -p $NOPANEL_ETC/users
-
-    # Initialize missing configuration files to empty json
-    for FILE in nopanel.json modules.json users.json
-    do
-        [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' >> "$NOPANEL_ETC/$FILE"
-    done
-
-    # Add a general group for normal users created by noPanel
+    # Add a general group for normal users and admins
     if [ -z "$(grep ^nopanel-users: /etc/group)" ]; then
         groupadd --system "nopanel-users"
     fi
+    if [ -z "$(grep ^nopanel-admins: /etc/group)" ]; then
+        groupadd --system "nopanel-admin"
+    fi
+
+    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG $NOPANEL_ETC/users
+    chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
+    chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_LOG
+
+    # Initialize missing configuration files to empty json
+    for FILE in nopanel.json modules.json
+    do
+        [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' >> "$NOPANEL_ETC/$FILE"
+        chmod 0660 "$NOPANEL_ETC/$FILE"
+    done
 
     nopanel_command_return 'ok' 'noPanel ready'
 }

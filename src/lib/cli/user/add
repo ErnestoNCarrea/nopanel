@@ -49,6 +49,7 @@ nopanel_user_add() {
 
     # Add membership to nopanel-users group to non-admin users
     if [ "$param_username" = "admin" ]; then
+        usermod -a -G "nopanel-admins" "$param_username" > /dev/null 2>&1
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
     else
         usermod -a -G "nopanel-users" "$param_username" > /dev/null 2>&1
