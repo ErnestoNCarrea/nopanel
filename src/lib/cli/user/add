@@ -47,7 +47,7 @@ nopanel_user_add() {
     
     echo "$param_username:$param_password" | /usr/sbin/chpasswd
 
-    # Add membership to hestia-users group to non-admin users
+    # Add membership to nopanel-users group to non-admin users
     if [ "$param_username" = "admin" ]; then
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
     else

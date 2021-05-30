@@ -38,7 +38,7 @@ nopanel_user_mod() {
     fi
 
     nopanel_command_echo ' - Setting up home directory and permissions'
-    # Add membership to hestia-users group to non-admin users
+    # Add membership to nopanel-users group to non-admin users
     if [ "$param_username" = "admin" ]; then
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
     else
