@@ -71,8 +71,10 @@ EOL
         # If /root/.my.cnf does not exist, secure MariaDB by setting root password
         local mariadb_root_password=$(osal_gen_pass)
         mysqladmin -u root password $mariadb_root_password
-        echo -e "[client]\npassword='$mariadb_root_password'\n" > ~/.my.cnf
+        echo -e "[client]\nuser=root\npassword='$mariadb_root_password'\n" > ~/.my.cnf
         chmod 600 ~/.my.cnf
+
+        osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.password = \"$mariadb_root_password\""
     fi
 
     mysql_upgrade > /dev/null 2>&1
@@ -86,7 +88,7 @@ EOL
     mysql -e "DROP DATABASE test" > /dev/null 2>&1
 
     osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.installed = \"true\" | .mariadb.serviceName = \"$OSAL_SERVICE_MARIADB\"" 
-    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.host = \"localhost\" | .mariadb.port = 3306 | .mariadb.user = \"root\" | .mariadb.password = \"$mariadb_root_password\""
+    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.host = \"localhost\" | .mariadb.port = 3306 | .mariadb.user = \"root\""
         
     nopanel_command_return 'ok' 'MariaDB module installed'
 }
