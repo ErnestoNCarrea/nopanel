@@ -13,10 +13,11 @@ nopanel_module_apache_install() {
     nopanel_command_echo " - Creating configuration files and directories"
     mkdir -p $OSAL_PATH_APACHE_CONF_D/domains
     mkdir -p /var/log/$OSAL_PKG_APACHE/domains
-    chmod a+x /var/log/$OSAL_PKG_APACHE
+    chmod 0770 /var/log/$OSAL_PKG_APACHE
+    chown root:nopanel-admins /var/log/$OSAL_PKG_APACHE
     touch /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
-    chmod 640 /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
-    chown root:root /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
+    chmod 660 /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
+    chown root:nopanel-admins /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
     chmod 751 /var/log/$OSAL_PKG_APACHE/domains
 
     # Enable/disable required modules
@@ -44,7 +45,7 @@ nopanel_module_apache_install() {
 EOL
     fi
 
-    osal_json_set "$NOPANEL_ETC/modules.json" ".apache.installed = \"true\" | .apache.serviceName = \"$OSAL_SERVICE_APACHE\"" 
+    osal_json_set "$NOPANEL_ETC/modules.json" ".apache.installed = \"true\" | .apache.serviceName = \"$OSAL_SERVICE_APACHE\" | .web.server = \"apache\" | .web.logs = \"/var/log/$OSAL_PKG_APACHE\""
 
     nopanel_command_echo " - Enabling and starting Apache service"
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
