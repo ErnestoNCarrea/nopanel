@@ -13,10 +13,10 @@ nopanel_init() {
         groupadd --system "nopanel-users"
     fi
     if [ -z "$(grep ^nopanel-admins: /etc/group)" ]; then
-        groupadd --system "nopanel-admin"
+        groupadd --system "nopanel-admins"
     fi
 
-    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG $NOPANEL_ETC/users
+    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG $NOPANEL_ETC/users $NOPANEL_ETC/domains
     chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
     chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_LOG
 
