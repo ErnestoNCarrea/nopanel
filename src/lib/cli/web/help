@@ -1,0 +1,7 @@
+#!/bin/bash
+
+nopanel_web_help() {
+    echo "Usage:"
+    echo ""
+    echo "  web domain add --user=USERNAME --domain=DOMAIN --aliases=ALIASES"
+}
