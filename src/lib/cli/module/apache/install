@@ -7,8 +7,8 @@ nopanel_module_apache_install() {
     nopanel_config_backup 'apache-install' $OSAL_PATH_APACHE_CONF $OSAL_PATH_APACHE_CONF_D
 
     nopanel_command_echo " - Installing Apache package(s)"
-    osal_package_preinstall
-    osal_package_install $OSAL_PKG_APACHE $OSAL_PKG_APACHE_EXTRA
+    osal_package_preinstall > /dev/null 2>&1
+    osal_package_install $OSAL_PKG_APACHE $OSAL_PKG_APACHE_EXTRA > /dev/null 2>&1
 
     nopanel_command_echo " - Creating configuration files and directories"
     mkdir -p $OSAL_PATH_APACHE_CONF_D/domains
