@@ -58,7 +58,6 @@ nopanel_user_add() {
 
     # Building directory tree
     mkdir -p $USER_HOME/conf
-    mkdir -p $NOPANEL_ETC/users
     USER_JSON=$NOPANEL_ETC/users/${param_username}.json
     chmod a+x $USER_HOME
     chattr +i $USER_HOME/conf > /dev/null 2>&1

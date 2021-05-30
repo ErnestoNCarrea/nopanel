@@ -9,7 +9,9 @@ nopanel_init() {
     nopanel_command_echo "Initializing noPanel version $NOPANEL_VERSION"
 
     mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
-    chmod 0755 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
+    chmod 0750 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
+
+    mkdir -p $NOPANEL_ETC/users
 
     # Initialize missing configuration files to empty json
     for FILE in nopanel.json modules.json users.json
