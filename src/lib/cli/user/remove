@@ -12,13 +12,15 @@ nopanel_user_remove() {
 
     [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified'
 
-    USER_JSON=$NOPANEL_ETC/users/${param_user}.json
+    local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
     chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1
     if [[ ! "$param_no_backup" ]]; then
         nopanel_config_backup "user-remove-$param_user" $NOPANEL_HOME/$param_user $USER_JSON
     fi
     /usr/sbin/userdel $param_user > /dev/null 2>&1
     nopanel_safe_rm "$NOPANEL_HOME/$param_user" $USER_JSON
+
+    osal_json_set "$NOPANEL_ETC/nopanel.json" "del(.users[] | select(.name == \"$param_user\"))"
 
     nopanel_command_return 'ok' 'User removed'
 }

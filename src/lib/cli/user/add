@@ -9,8 +9,8 @@ nopanel_user_add() {
     [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified (--user)'
     [[ "$param_password" ]] || nopanel_command_return 'error' 'User password not specified (--password)'
     
-    useradd_params="--groups nopanel-users "
-    USER_HOME="$NOPANEL_HOME/$param_user"
+    local useradd_params="--groups nopanel-users "
+    local USER_HOME="$NOPANEL_HOME/$param_user"
 
     # Default shell
     [[ "$param_shell" ]] || param_shell='nologin'
@@ -55,7 +55,7 @@ nopanel_user_add() {
 
     # Building directory tree
     mkdir -p $USER_HOME/conf
-    USER_JSON=$NOPANEL_ETC/users/${param_user}.json
+    local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
     chmod a+x $USER_HOME
     chattr +i $USER_HOME/conf > /dev/null 2>&1
 
@@ -75,6 +75,9 @@ nopanel_user_add() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
+
+    local user_exists=$(osal_json_get "$NOPANEL_ETC/nopanel.json" ".users[] | select(.name == \"$param_user\") | .name")
+    [[ "$user_exists" ]] && osal_json_set "$NOPANEL_ETC/nopanel.json" ".users += [{name: \"$param_user\"}]"
 
     osal_json_set "$USER_JSON" ".username = \"$param_user\" | .shell = \"$param_shell\""
     [[ $param_email ]] && osal_json_set "$USER_JSON" ".email = \"$param_email\""
