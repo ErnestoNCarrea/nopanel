@@ -35,13 +35,17 @@ nopanel_user_add() {
         useradd_params="$useradd_params -m -d $USER_HOME"
     fi
 
+    if [[ "$param_contact" ]]; then
+        useradd_params="$useradd_params -c \"$param_contact\""
+    fi
+
     # Add user and set password
     if id "$param_username" &>/dev/null; then
         if [[ ! "$param_force" ]]; then
             nopanel_command_return 'error' 'The user already exists'
         fi
     else
-        /usr/sbin/useradd "$param_username" -c "$param_email" $useradd_params > /dev/null 2>&1
+        /usr/sbin/useradd "$param_username"  $useradd_params > /dev/null 2>&1
     fi
     /usr/sbin/usermod --shell "$param_shell" "$param_username" > /dev/null 2>&1
     /usr/sbin/usermod -d "$USER_HOME" "$param_username" > /dev/null 2>&1
