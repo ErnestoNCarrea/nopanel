@@ -6,9 +6,18 @@ if [[ -z "$NOPANEL_VERSION" ]]; then
 fi
 
 nopanel_init() {
-    echo "noPanel version $NOPANEL_VERSION"
+    nopanel_command_echo "Initializing noPanel version $NOPANEL_VERSION"
 
-    mkdir -p /var/log/nopanel $NOPANEL_STATE $NOPANEL_ETC
+    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
+    chmod 0755 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
+
+    # Initialize missing configuration files to empty json
+    for FILE in nopanel.json modules.json users.json
+    do
+        [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' >> "$NOPANEL_ETC/$FILE"
+    done
+
+    nopanel_command_return 'ok' 'noPanel ready'
 }
 
 # If this files is _not_ being sourced, act immediately
