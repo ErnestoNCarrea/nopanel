@@ -1,6 +1,6 @@
 Name:           nopanel-cli
 Version:        1.0
-Release:        1%{?dist}
+Release:        1
 Summary:        noPanel CLI
 Group:          System Environment/Base
 License:        GPLv3
@@ -40,7 +40,7 @@ cp -rfa "%{_sourcedir}/../share"/* "%{buildroot}/usr/share/nopanel/"
 %pre
 
 %post
-%{_bindir}/nopanel init --interactive
+%{_bindir}/nopanel init --output-silent
 
 %preun
 
