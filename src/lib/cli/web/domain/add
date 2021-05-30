@@ -1,0 +1,43 @@
+#!/bin/bash
+
+nopanel_web_domain_add() {
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        exit 0
+    fi
+
+    [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified'
+    [[ "$param_domain" ]] || nopanel_command_return 'error' 'Domain name not specified'
+    
+    USER_HOME="$NOPANEL_HOME/$param_user"
+    USER_JSON=$NOPANEL_ETC/users/${param_user}.json
+    DOMAIN_JSON=$NOPANEL_ETC/domains/${param_domain}.json
+
+    chmod a+x $USER_HOME
+    chattr +i $USER_HOME/conf > /dev/null 2>&1
+
+    # Create and populate default folders
+    nopanel_user_exec $param_user mkdir -p $USER_HOME/web/$param_domain/public_html \
+        $USER_HOME/web/$param_domain/logs 
+    user_exec cp -r $NOPANEL_DATA/web/skel/* "$USER_HOME/web/$param_domain/" > /dev/null 2>&1
+    [[ -f $NOPANEL_DATA/$OS_BASE/web/skel ]] && user_exec cp -r -n $NOPANEL_DATA/$OS_BASE/web/skel/* "$USER_HOME/web/$param_domain/" > /dev/null 2>&1
+    for file in $(find "$USER_HOME/web/$param_domain/" -type f); do
+        sed -i "s/%NOPANEL_DOMAIN%/$param_domain/g" $file
+    done
+
+    # Setup logs
+    WEB_LOGS=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.logs")
+    touch $WEB_LOGS/domains/$param_domain.bytes \
+        $WEB_LOGS/domains/$param_domain.log \
+        $WEB_LOGS/domains/$param_domain.error.log
+    ln -f -s $WEB_LOGS/domains/$param_domain.*log \
+        $USER_HOME/web/$param_domain/logs/
+
+    local domain_exists=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$param_domain\") | .name")
+    [[ "$domain_exists" ]] || osal_json_set "$NOPANEL_ETC/domains.json" ".domains += [{name: \"$param_domain\"}]"
+    osal_json_set "$NOPANEL_ETC/domains.json" ".domains |= map((select(.name == \"$param_domain\") | .user = \"$param_user\") // .)"
+    
+    osal_json_set "$DOMAIN_JSON" ".user = \"$param_user\""
+
+    nopanel_command_return 'ok' 'Domain added'
+}
