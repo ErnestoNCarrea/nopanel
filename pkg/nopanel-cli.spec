@@ -8,6 +8,10 @@ URL:            https://www.nopanel.cc
 Vendor:         nopanel.cc
 Requires:       (redhat-release >= 7) OR (fedora-release-common >= 32)
 Requires:       bash
+Requires:       util-linux
+Requires:       sed
+Requires:       tar
+Requires:       gzip
 Requires:       jq
 Provides:       nopanel-cli = %{version}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
