@@ -3,6 +3,7 @@
 nopanel_user_help() {
     echo "Usage:"
     echo ""
-    echo "  user add --username=USERNAME --password=PASSWORD --email=EMAIL [--shell=SHELL] [--contact=CONTACT_NAME] [--force]"
-    echo "  user remove --username=USERNAME --force [--no-backup]"
+    echo "  user add --user=USERNAME --password=PASSWORD --email=EMAIL [--shell=SHELL] [--fullname=FULL_NAME] [--force]"
+    echo "  user mod --user=USERNAME [--password=PASSWORD] [--email=EMAIL] [--shell=SHELL] [--fullname=FULL_NAME]"
+    echo "  user remove --user=USERNAME --force [--no-backup]"
 }

@@ -6,24 +6,24 @@ nopanel_user_mod() {
         exit 0
     fi
 
-    [[ "$param_username" ]] || nopanel_command_return 'error' 'Username not specified'
+    [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified'
     
-    USER_HOME="$NOPANEL_HOME/$param_username"
-    USER_JSON=$NOPANEL_ETC/users/${param_username}.json
-    osal_json_set "$USER_JSON" ".username = \"$param_username\""
+    USER_HOME="$NOPANEL_HOME/$param_user"
+    USER_JSON=$NOPANEL_ETC/users/${param_user}.json
+    osal_json_set "$USER_JSON" ".username = \"$param_user\""
 
     # Default shell
     if [[ "$param_shell" ]]; then
         param_shell=$(grep -w "$param_shell" /etc/shells | head -n1)
         [[ "$param_shell" ]] || nopanel_command_return 'error' 'Unrecognized shell'
         nopanel_command_echo ' - Setting shell'
-        /usr/sbin/usermod --shell "$param_shell" "$param_username" > /dev/null 2>&1
+        /usr/sbin/usermod --shell "$param_shell" "$param_user" > /dev/null 2>&1
         osal_json_set "$USER_JSON" ".shell = \"$param_shell\""
     fi
     
     if [[ "$param_password" ]]; then
         nopanel_command_echo ' - Setting password'
-        echo "$param_username:$param_password" | /usr/sbin/chpasswd
+        echo "$param_user:$param_password" | /usr/sbin/chpasswd
     fi
 
     if [[ "$param_email" ]]; then
@@ -31,19 +31,13 @@ nopanel_user_mod() {
         osal_json_set "$USER_JSON" ".email = \"$param_email\""
     fi
 
-    if [[ "$param_contact" ]]; then
-        nopanel_command_echo ' - Setting contact name'
-        osal_json_set "$USER_JSON" ".contact = \"$param_contact\""
-        /usr/sbin/usermod --c "$param_contact" "$param_username" > /dev/null 2>&1
-    fi
-
     nopanel_command_echo ' - Setting up home directory and permissions'
     # Add membership to nopanel-users group to non-admin users
-    if [ "$param_username" = "admin" ]; then
+    if [ "$param_user" = "admin" ]; then
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
     else
-        usermod -a -G "nopanel-users" "$param_username" > /dev/null 2>&1
-        setfacl -m "u:$param_username:r-x" "$USER_HOME" > /dev/null 2>&1
+        usermod -a -G "nopanel-users" "$param_user" > /dev/null 2>&1
+        setfacl -m "u:$param_user:r-x" "$USER_HOME" > /dev/null 2>&1
     fi
     setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
 
@@ -61,7 +55,7 @@ nopanel_user_mod() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
-    chown $param_username:$param_username \
+    chown $param_user:$param_user \
         $USER_HOME/.config \
         $USER_HOME/.cache \
         $USER_HOME/.local \

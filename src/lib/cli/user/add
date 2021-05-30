@@ -6,12 +6,11 @@ nopanel_user_add() {
         exit 0
     fi
 
-    [[ "$param_username" ]] || nopanel_command_return 'error' 'Username not specified'
-    [[ "$param_email" ]] || nopanel_command_return 'error' 'User e-mail address not specified'
-    [[ "$param_password" ]] || nopanel_command_return 'error' 'User password not specified'
+    [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified (--user)'
+    [[ "$param_password" ]] || nopanel_command_return 'error' 'User password not specified (--password)'
     
-    useradd_params=''
-    USER_HOME="$NOPANEL_HOME/$param_username"
+    useradd_params="--groups nopanel-users "
+    USER_HOME="$NOPANEL_HOME/$param_user"
 
     # Default shell
     [[ "$param_shell" ]] || param_shell='nologin'
@@ -20,46 +19,43 @@ nopanel_user_add() {
 
     if [[ -d "$USER_HOME" ]]; then
         if [[ "$param_force" ]]; then
-            useradd_params="$useradd_params -M"     # Do not create home directory
+            useradd_params="$useradd_params --no-create-home"     # Do not create home directory
             nopanel_command_echo 'Not creating home directory because it already exists'
         else
             nopanel_command_return 'error' 'The user home directory already exists'
         fi
     else
         # Create user home directory
-        useradd_params="$useradd_params -m -d $USER_HOME"
-    fi
-
-    if [[ "$param_contact" ]]; then
-        useradd_params="$useradd_params -c \"$param_contact\""
+        useradd_params="$useradd_params --create-home --home-dir $USER_HOME"
     fi
 
     # Add user and set password
-    if id "$param_username" &>/dev/null; then
+    if id -u "$param_user" &>/dev/null; then
         if [[ ! "$param_force" ]]; then
             nopanel_command_return 'error' 'The user already exists'
         fi
+        nopanel_command_echo 'Not creating user because it already exists'
     else
-        /usr/sbin/useradd "$param_username"  $useradd_params > /dev/null 2>&1
+        /usr/sbin/useradd $useradd_params $param_user > /dev/null 2>&1
     fi
-    /usr/sbin/usermod --shell "$param_shell" "$param_username" > /dev/null 2>&1
-    /usr/sbin/usermod -d "$USER_HOME" "$param_username" > /dev/null 2>&1
-    
-    echo "$param_username:$param_password" | /usr/sbin/chpasswd
+    /usr/sbin/usermod --shell "$param_shell" "$param_user" > /dev/null 2>&1
+    /usr/sbin/usermod -d "$USER_HOME" "$param_user" > /dev/null 2>&1
+
+    echo "$param_user:$param_password" | /usr/sbin/chpasswd
 
     # Add membership to nopanel-users group to non-admin users
-    if [ "$param_username" = "admin" ]; then
-        usermod -a -G "nopanel-admins" "$param_username" > /dev/null 2>&1
+    if [ "$param_user" = "admin" ]; then
+        usermod -a -G "nopanel-admins" "$param_user" > /dev/null 2>&1
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
     else
-        usermod -a -G "nopanel-users" "$param_username" > /dev/null 2>&1
-        setfacl -m "u:$param_username:r-x" "$USER_HOME" > /dev/null 2>&1
+        usermod -a -G "nopanel-users" "$param_user" > /dev/null 2>&1
+        setfacl -m "u:$param_user:r-x" "$USER_HOME" > /dev/null 2>&1
     fi
     setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
 
     # Building directory tree
     mkdir -p $USER_HOME/conf
-    USER_JSON=$NOPANEL_ETC/users/${param_username}.json
+    USER_JSON=$NOPANEL_ETC/users/${param_user}.json
     chmod a+x $USER_HOME
     chattr +i $USER_HOME/conf > /dev/null 2>&1
 
@@ -71,7 +67,7 @@ nopanel_user_add() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
-    chown $param_username:$param_username \
+    chown $param_user:$param_user \
         $USER_HOME/.config \
         $USER_HOME/.cache \
         $USER_HOME/.local \
@@ -80,10 +76,9 @@ nopanel_user_add() {
         $USER_HOME/.npm
 
 
-    osal_json_set "$USER_JSON" ".username = \"$param_username\""
-    osal_json_set "$USER_JSON" ".shell = \"$param_shell\""
-    osal_json_set "$USER_JSON" ".email = \"$param_email\""
-    osal_json_set "$USER_JSON" ".contact = \"$param_contact\""
+    osal_json_set "$USER_JSON" ".username = \"$param_user\" | .shell = \"$param_shell\""
+    [[ $param_email ]] && osal_json_set "$USER_JSON" ".email = \"$param_email\""
+    [[ $param_fullname ]] && osal_json_set "$USER_JSON" ".fullname = \"$param_fullname\""
 
     nopanel_command_return 'ok' 'User added'
 }
