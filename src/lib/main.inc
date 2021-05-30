@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_command_echo() {
-    if [[ "$param_interactive" ]]; then
+    if [[ "$param_interactive" ]] && [[ ! "$param_output_silent" ]]; then
         echo "$@"
     fi
     nopanel_command_log "$@"
@@ -12,8 +12,19 @@ nopanel_command_log() {
 }
 
 nopanel_command_return() {
-    if [[ "$param_interactive" ]]; then
-        echo $1: $2
+    if [[ "$param_output_silent" ]]; then
+        : # Nothing
+    elif [[ "$param_output_text" ]]; then
+        TERM_COLOR_NONE='\033[0m'
+        TERM_COLOR_RED='\033[0;31m'
+        TERM_COLOR_GREEN='\033[0;32m'
+        if [[ "$1" == "ok" ]]; then
+            echo -e "[ ${TERM_COLOR_GREEN}ok${TERM_COLOR_NONE} ]: $2"
+        elif [[ "$1" == "error" ]]; then
+            echo -e "[ ${TERM_COLOR_RED}error${TERM_COLOR_NONE} ]: $2"
+        else
+            echo "[ $1 ]: $2"
+        fi
     else
         jq -n ".status=\"$1\"|.message=\"$2\""
     fi
@@ -25,7 +36,7 @@ nopanel_command_return() {
     fi
 }
 
-# Backup config files (usually prior to module install)
+# Backup config files (usually prior to install/remove)
 # nopanel_config_backup 'prefix' file1 file2 file3 ...
 nopanel_config_backup() {
     local dest=$NOPANEL_STATE/backup/
