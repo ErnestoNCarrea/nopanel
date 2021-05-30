@@ -8,7 +8,7 @@ nopanel_command_echo() {
 }
 
 nopanel_command_log() {
-    logger "$@"
+    logger -- "$@"
 }
 
 nopanel_command_return() {
@@ -63,4 +63,15 @@ nopanel_exit_on_failure() {
     if [ $? -ne 0 ]; then
         nopanel_command_return 'error' "$2"
     fi
+}
+
+# Run arbitrary CLI commands with dropped privileges
+nopanel_user_exec() {
+    local user=$1
+    shift
+
+    local user_groups=$(id -G "$user")
+    user_groups=${user_groups//\ /,}
+
+    setpriv --groups "$user_groups" --reuid "$user" --regid "$user" -- $@
 }
