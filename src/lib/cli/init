@@ -17,6 +17,11 @@ nopanel_init() {
         [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' >> "$NOPANEL_ETC/$FILE"
     done
 
+    # Add a general group for normal users created by noPanel
+    if [ -z "$(grep ^nopanel-users: /etc/group)" ]; then
+        groupadd --system "nopanel-users"
+    fi
+
     nopanel_command_return 'ok' 'noPanel ready'
 }
 

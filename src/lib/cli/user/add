@@ -1,11 +1,6 @@
 #!/bin/bash
 
 nopanel_user_add() {
-    # Add a general group for normal users created by noPanel
-    if [ -z "$(grep ^nopanel-users: /etc/group)" ]; then
-        groupadd --system "nopanel-users"
-    fi
-
     if [[ "$param_help" ]]; then
         nopanel user help
         exit 0
