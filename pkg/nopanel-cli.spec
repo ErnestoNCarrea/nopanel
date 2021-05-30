@@ -13,6 +13,7 @@ Requires:       sed
 Requires:       tar
 Requires:       gzip
 Requires:       jq
+Requires:       libidn
 Provides:       nopanel-cli = %{version}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch:      noarch
