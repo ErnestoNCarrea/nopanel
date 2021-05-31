@@ -85,7 +85,7 @@ nopanel_web_domain_rebuild_user_domain() {
 
     # Apache config
     [[ ! -d "$USER_HOME/conf/web/$param_domain" ]] && mkdir -p "$USER_HOME/conf/web/$param_domain"
-    local APACHE_CONF_FILE="$USER_HOME/conf/web/$domain/apache.conf"
+    local APACHE_CONF_FILE="$USER_HOME/conf/web/$param_domain/apache.conf"
 
     cat "$NOPANEL_DATA/web/apache/domain.conf" | \
         sed -e "s|%NOPANEL_IP%|\*|g" \
@@ -104,6 +104,6 @@ nopanel_web_domain_rebuild_user_domain() {
             -e "s|%NOPANEL_PHP_FPM_SOCK%|$PHP_FPM_SOCK|g" \
         > $APACHE_CONF_FILE
 
-    ln -f $APACHE_CONF_FILE $OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
+    ln -s -f $APACHE_CONF_FILE $OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
     
 }
