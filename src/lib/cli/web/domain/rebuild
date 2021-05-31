@@ -46,6 +46,14 @@ nopanel_web_domain_rebuild_user_domain() {
 
     # Create and populate default folders
     local DOMAIN_DOCROOT=$USER_HOME/web/$param_domain/public_html
+    local domain_idn=$(nplib_domain_idn $param_domain)
+    local domain_aliases_idn=$(nplib_domain_aliases_idn $param_aliases)
+    local USER_EMAIL=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .email")
+    [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
+    WEB_LOGS=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.logs")
+    WEB_SERVER=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.server")
+    APACHE_DEFINES='Define NOPANEL'
+
     mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs 
     cp -rf "$NOPANEL_DATA/web/skel"/* "$USER_HOME/web/$param_domain/"
     [[ -f "$NOPANEL_DATA/$OS_BASE/web/skel" ]] && cp -rf -n $NOPANEL_DATA/$OS_BASE/web/skel/* "$USER_HOME/web/$param_domain/"
@@ -63,23 +71,18 @@ nopanel_web_domain_rebuild_user_domain() {
             -e "s|%NOPANEL_ALIASES_IDN%|$domain_aliases_idn|g" \
             -e "s|%NOPANEL_WEB_LOGS%|$WEB_LOGS|g" \
             -e "s|%NOPANEL_DOCROOT%|$DOMAIN_DOCROOT|g" \
+            -e "s|%NOPANEL_APACHE_DEFINES%|$APACHE_DEFINES|g" \
+            -e "s|%NOPANEL_PHP_FPM%|$PHP_FPM|g" \
+            -e "s|%NOPANEL_PHP_FPM_SOCK%|$PHP_FPM_SOCK|g" \
         $file
     done
 
     # Setup logs
-    WEB_LOGS=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.logs")
-    WEB_SERVER=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.server")
-
     touch $WEB_LOGS/domains/$param_domain.bytes \
         $WEB_LOGS/domains/$param_domain.log \
         $WEB_LOGS/domains/$param_domain.error.log
     ln -f -s $WEB_LOGS/domains/$param_domain.*log \
         $USER_HOME/web/$param_domain/logs/
-
-    local domain_idn=$(nplib_domain_idn $param_domain)
-    local domain_aliases_idn=$(nplib_domain_aliases_idn $param_aliases)
-    local USER_EMAIL=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .email")
-    [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
 
     # Apache config
     [[ ! -d "$USER_HOME/conf/web/$param_domain" ]] && mkdir -p "$USER_HOME/conf/web/$param_domain"
@@ -97,6 +100,9 @@ nopanel_web_domain_rebuild_user_domain() {
             -e "s|%NOPANEL_ALIASES_IDN%|$domain_aliases_idn|g" \
             -e "s|%NOPANEL_WEB_LOGS%|$WEB_LOGS|g" \
             -e "s|%NOPANEL_DOCROOT%|$DOMAIN_DOCROOT|g" \
+            -e "s|%NOPANEL_APACHE_DEFINES%|$APACHE_DEFINES|g" \
+            -e "s|%NOPANEL_PHP_FPM%|$PHP_FPM|g" \
+            -e "s|%NOPANEL_PHP_FPM_SOCK%|$PHP_FPM_SOCK|g" \
         > $APACHE_CONF_FILE
 
     ln -f $APACHE_CONF_FILE $OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
