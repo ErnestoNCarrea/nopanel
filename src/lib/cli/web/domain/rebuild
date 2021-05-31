@@ -1,0 +1,82 @@
+#!/bin/bash
+
+nopanel_web_domain_rebuild() {
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        return
+    fi
+
+    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
+    [[ "$param_domain" ]] || (nopanel_command_return 'error' 'Domain name not specified'; return)
+
+    param_aliases=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$param_domain\") | .aliases")
+
+    nopanel_command_echo "Configuring web server for domain $param_domain..."
+
+    source $NOPANEL_LIB/domain.inc
+    
+    local USER_HOME="$NOPANEL_HOME/$param_user"
+    local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
+    local DOMAIN_JSON=$NOPANEL_ETC/domains/${param_domain}.json
+
+    #chattr +i $USER_HOME/conf > /dev/null 2>&1
+
+    # Create and populate default folders
+    local DOMAIN_DOCROOT=$USER_HOME/web/$param_domain/public_html
+    mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs 
+    cp -rf "$NOPANEL_DATA/web/skel"/* "$USER_HOME/web/$param_domain/"
+    [[ -f "$NOPANEL_DATA/$OS_BASE/web/skel" ]] && cp -rf -n $NOPANEL_DATA/$OS_BASE/web/skel/* "$USER_HOME/web/$param_domain/"
+    chown -R $param_user:$param_user "$USER_HOME/web/$param_domain/"
+    # FIXME: do not sed entire folder, just copied files
+    for file in $(find "$USER_HOME/web/$param_domain/" -type f); do
+        sed -i -e "s|%NOPANEL_IP%|\*|g" \
+            -e "s|%NOPANEL_USER%|$param_user|g" \
+            -e "s|%NOPANEL_USER_GROUP%|$param_user|g" \
+            -e "s|%NOPANEL_USER_HOME%|$USER_HOME|g" \
+            -e "s|%NOPANEL_USER_EMAIL%|$USER_EMAIL|g" \
+            -e "s|%NOPANEL_DOMAIN%|$param_domain|g" \
+            -e "s|%NOPANEL_DOMAIN_IDN%|$domain_idn|g" \
+            -e "s|%NOPANEL_ALIASES%|${param_aliases//,/ }|g" \
+            -e "s|%NOPANEL_ALIASES_IDN%|$domain_aliases_idn|g" \
+            -e "s|%NOPANEL_WEB_LOGS%|$WEB_LOGS|g" \
+            -e "s|%NOPANEL_DOCROOT%|$DOMAIN_DOCROOT|g" \
+        $file
+    done
+
+    # Setup logs
+    WEB_LOGS=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.logs")
+    WEB_SERVER=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.server")
+
+    touch $WEB_LOGS/domains/$param_domain.bytes \
+        $WEB_LOGS/domains/$param_domain.log \
+        $WEB_LOGS/domains/$param_domain.error.log
+    ln -f -s $WEB_LOGS/domains/$param_domain.*log \
+        $USER_HOME/web/$param_domain/logs/
+
+    local domain_idn=$(nopanel_domain_idn $param_domain)
+    local domain_aliases_idn=$(nopanel_domain_aliases_idn $param_aliases)
+    local USER_EMAIL=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .email")
+    [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
+
+    # Apache config
+    [[ ! -d "$USER_HOME/conf/web/$param_domain" ]] && mkdir -p "$USER_HOME/conf/web/$param_domain"
+    local APACHE_CONF_FILE="$USER_HOME/conf/web/$domain/apache.conf"
+
+    cat "$NOPANEL_DATA/web/apache/domain.conf" | \
+        sed -e "s|%NOPANEL_IP%|\*|g" \
+            -e "s|%NOPANEL_USER%|$param_user|g" \
+            -e "s|%NOPANEL_USER_GROUP%|$param_user|g" \
+            -e "s|%NOPANEL_USER_HOME%|$USER_HOME|g" \
+            -e "s|%NOPANEL_USER_EMAIL%|$USER_EMAIL|g" \
+            -e "s|%NOPANEL_DOMAIN%|$param_domain|g" \
+            -e "s|%NOPANEL_DOMAIN_IDN%|$domain_idn|g" \
+            -e "s|%NOPANEL_ALIASES%|${param_aliases//,/ }|g" \
+            -e "s|%NOPANEL_ALIASES_IDN%|$domain_aliases_idn|g" \
+            -e "s|%NOPANEL_WEB_LOGS%|$WEB_LOGS|g" \
+            -e "s|%NOPANEL_DOCROOT%|$DOMAIN_DOCROOT|g" \
+        > $APACHE_CONF_FILE
+
+    ln -f $APACHE_CONF_FILE $OSAL_PATH_APACHE_CONF_D/domains/${param_user}-${param_domain}.conf
+    
+    nopanel_command_return 'ok' 'Domain configuration generated'
+}
