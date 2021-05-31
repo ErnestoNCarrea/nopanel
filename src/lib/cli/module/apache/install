@@ -36,11 +36,6 @@ nopanel_module_apache_install() {
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/ssl.conf
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/welcome.conf
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/userdir.conf
-        echo > $OSAL_PATH_APACHE_CONF_D/dir.conf <<EOL # This file was added by noPanel
-        <IfModule mod_dir.c>
-                DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm
-        </IfModule>
-EOL
     elif [ "$OS_BASE" = 'debian' ]; then
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default-ssl
