@@ -3,11 +3,11 @@
 nopanel_user_add() {
     if [[ "$param_help" ]]; then
         nopanel user help
-        exit 0
+        return
     fi
 
-    [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified (--user)'
-    [[ "$param_password" ]] || nopanel_command_return 'error' 'User password not specified (--password)'
+    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified (--user)'; return)
+    [[ "$param_password" ]] || (nopanel_command_return 'error' 'User password not specified (--password)'; return)
     
     local useradd_params="--groups nopanel-users "
     local USER_HOME="$NOPANEL_HOME/$param_user"
@@ -23,6 +23,7 @@ nopanel_user_add() {
             nopanel_command_echo 'Not creating home directory because it already exists'
         else
             nopanel_command_return 'error' 'The user home directory already exists'
+            return
         fi
     else
         # Create user home directory
@@ -33,6 +34,7 @@ nopanel_user_add() {
     if id -u "$param_user" &>/dev/null; then
         if [[ ! "$param_force" ]]; then
             nopanel_command_return 'error' 'The user already exists'
+            return
         fi
         nopanel_command_echo 'Not creating user because it already exists'
     else

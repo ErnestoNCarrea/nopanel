@@ -3,10 +3,10 @@
 nopanel_user_mod() {
     if [[ "$param_help" ]]; then
         nopanel user help
-        exit 0
+        return
     fi
 
-    [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified'
+    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
     
     USER_HOME="$NOPANEL_HOME/$param_user"
     USER_JSON=$NOPANEL_ETC/users/${param_user}.json
@@ -15,7 +15,7 @@ nopanel_user_mod() {
     # Default shell
     if [[ "$param_shell" ]]; then
         param_shell=$(grep -w "$param_shell" /etc/shells | head -n1)
-        [[ "$param_shell" ]] || nopanel_command_return 'error' 'Unrecognized shell'
+        [[ "$param_shell" ]] || (nopanel_command_return 'error' 'Unrecognized shell'; return)
         nopanel_command_echo ' - Setting shell'
         /usr/sbin/usermod --shell "$param_shell" "$param_user" > /dev/null 2>&1
         osal_json_set "$USER_JSON" ".shell = \"$param_shell\""

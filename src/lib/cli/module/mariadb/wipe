@@ -3,6 +3,7 @@
 nopanel_module_mariadb_wipe() {
     if [[ ! "$param_force" ]]; then
         nopanel_command_return 'error' 'Refusing to wipe MariaDB unless --force is used'
+        return
     fi
 
     nopanel_command_echo "Wiping noPanel MariaDB module..."

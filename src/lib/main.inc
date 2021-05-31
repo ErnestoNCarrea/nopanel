@@ -30,9 +30,9 @@ nopanel_command_return() {
     fi
 
     if [[ "$1" == "ok" ]]; then
-        exit 0
+        return 0
     else
-        exit 1
+        return 1
     fi
 }
 

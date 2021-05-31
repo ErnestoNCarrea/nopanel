@@ -37,7 +37,7 @@ source $NOPANEL_LIB/osal.inc
 nopanel() {
     if [[ -z "$@" ]]; then
         echo "noPanel: command missing. Try '${0} help' for more information."
-        exit
+        return 1
     fi
 
     # Search for command file

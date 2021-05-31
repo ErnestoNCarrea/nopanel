@@ -3,14 +3,15 @@
 nopanel_user_remove() {
     if [[ "$param_help" ]]; then
         nopanel user help
-        exit 0
+        return
     fi
 
     if [[ ! "$param_force" ]]; then
         nopanel_command_return 'error' 'Refusing to remove user unless --force is used'
+        return
     fi
 
-    [[ "$param_user" ]] || nopanel_command_return 'error' 'Username not specified'
+    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
 
     local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
     chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1
