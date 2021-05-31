@@ -54,7 +54,9 @@ nopanel_web_domain_rebuild_user_domain() {
     WEB_SERVER=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.server")
     APACHE_DEFINES='Define NOPANEL'
 
-    mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs 
+    echo mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs
+    mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs
+
     cp -rf "$NOPANEL_DATA/web/skel"/* "$USER_HOME/web/$param_domain/"
     [[ -f "$NOPANEL_DATA/$OS_BASE/web/skel" ]] && cp -rf -n $NOPANEL_DATA/$OS_BASE/web/skel/* "$USER_HOME/web/$param_domain/"
     chown -R $param_user:$param_user "$USER_HOME/web/$param_domain/"
