@@ -6,9 +6,34 @@ nopanel_web_domain_rebuild() {
         return
     fi
 
-    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
-    [[ "$param_domain" ]] || (nopanel_command_return 'error' 'Domain name not specified'; return)
+    if [[ "$param_user" ]]; then
+        nopanel_web_domain_rebuild_user "$param_user"
+    else
+        # Rebuild all users
+        for param_user in $(param_output_silent=1 nopanel user list); do
+            nopanel_web_domain_rebuild_user
+        done
+        user param_user
+    fi
 
+    nopanel_command_return 'ok' 'Domain configuration generated'
+}
+
+
+nopanel_web_domain_rebuild_user() {
+    nopanel_command_echo "Processing user $param_user..."
+    if [[ "$param_domain" ]]; then
+        nopanel_web_domain_rebuild_user_domain
+    else
+        # Rebuild all domaind
+        for param_domain in $(param_output_silent=1 nopanel web domain list); do
+            nopanel_web_domain_rebuild_user_domain
+        done
+        unset param_domain
+    fi
+}
+
+nopanel_web_domain_rebuild_user_domain() {
     param_aliases=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$param_domain\") | .aliases")
 
     nopanel_command_echo "Configuring web server for domain $param_domain..."
@@ -76,7 +101,6 @@ nopanel_web_domain_rebuild() {
             -e "s|%NOPANEL_DOCROOT%|$DOMAIN_DOCROOT|g" \
         > $APACHE_CONF_FILE
 
-    ln -f $APACHE_CONF_FILE $OSAL_PATH_APACHE_CONF_D/domains/${param_user}-${param_domain}.conf
+    ln -f $APACHE_CONF_FILE $OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
     
-    nopanel_command_return 'ok' 'Domain configuration generated'
 }
