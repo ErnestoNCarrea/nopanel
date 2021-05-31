@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# nplib_domains_set 'MODULENAME' 'key' 'value'
+nplib_domains_set() {
+    osal_json_set "$NOPANEL_ETC/modules.json" ".\"${1}\".\"${2}\" = \"$3\""
+}
+
+# nplib_domains_get 'MODULENAME' 'key'
+nplib_domains_get() {
+    osal_json_get "$NOPANEL_ETC/modules.json" ".\"$1\" | .\"$2\""
+}
+
 nplib_domain_list() {
     osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.user == \"$param_user\") | .name"
 }

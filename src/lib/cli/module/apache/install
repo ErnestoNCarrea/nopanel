@@ -49,7 +49,7 @@ EOL
 
     nplib_modules_set_installed 'apache' 'true'
     nplib_modules_set 'web' 'server' 'apache'
-    nplib_modules_set 'web' 'logs' 'apache' "/var/log/$OSAL_PKG_APACHE"
+    nplib_modules_set 'web' 'logs' "/var/log/$OSAL_PKG_APACHE"
 
     nopanel_command_echo " - Enabling and starting Apache service"
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1

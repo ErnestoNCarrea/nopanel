@@ -7,6 +7,7 @@ nopanel_web_domain_rebuild() {
     fi
 
     source $NOPANEL_LIB/domain.inc
+    source $NOPANEL_LIB/module.inc
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user "$param_user"
@@ -38,22 +39,19 @@ nopanel_web_domain_rebuild_user() {
 nopanel_web_domain_rebuild_user_domain() {
     param_aliases=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$param_domain\") | .aliases")
 
-    nopanel_command_echo "  - Configuring web server for domain $param_domain..."
-
     local USER_HOME="$NOPANEL_HOME/$param_user"
-
-    #chattr +i $USER_HOME/conf > /dev/null 2>&1
-
-    # Create and populate default folders
     local DOMAIN_DOCROOT=$USER_HOME/web/$param_domain/public_html
     local domain_idn=$(nplib_domain_idn $param_domain)
     local domain_aliases_idn=$(nplib_domain_aliases_idn $param_aliases)
     local USER_EMAIL=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .email")
     [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
-    WEB_LOGS=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.logs")
-    WEB_SERVER=$(osal_json_get "$NOPANEL_ETC/modules.json" ".web.server")
+    WEB_LOGS=$(nplib_modules_get 'web' 'logs')
+    WEB_SERVER=$(nplib_modules_get 'web' 'server')
     APACHE_DEFINES='Define NOPANEL'
 
+    nopanel_command_echo "  - Configuring web server for domain $param_domain..."
+
+    # Create and populate default folders
     mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs
 
     cp -rf "$NOPANEL_DATA/web/skel"/* "$USER_HOME/web/$param_domain/"
