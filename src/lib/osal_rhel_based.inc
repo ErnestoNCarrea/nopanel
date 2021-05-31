@@ -148,15 +148,20 @@ osal_php_package_prefix() {
     echo php${1//.}-php
 }
 
-# multiphp_fpm_isinstalled 7.3 = (1|null)
+# osal_php_fpm_isinstalled 7.3 = (1|null)
 osal_php_fpm_isinstalled() {
     php_prefix=$(osal_php_package_prefix $1)
     rpm -q --quiet ${php_prefix}-fpm && echo 1
 }
 
-# multiphp_etc_folder '7.3' = /etc/opt/remi/php73
+# osal_php_etc_folder '7.3' = /etc/opt/remi/php73
 osal_php_etc_folder() {
     echo /etc/opt/remi/php${1//.}
+}
+
+# osal_php_etc_sock '7.3' = /var/opt/remi/php73/run/php-fpm/www.sock
+osal_php_etc_sock() {
+    echo /var/opt/remi/php${1//.}/run/php-fpm/www.sock
 }
 
 # Returns PHP-FPM directory for a given PHP version

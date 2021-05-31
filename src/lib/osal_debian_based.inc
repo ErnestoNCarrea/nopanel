@@ -155,6 +155,11 @@ osal_php_etc_folder() {
     echo /etc/php/php${1}
 }
 
+# osal_php_etc_sock '7.3' = /var/php-fpm/php73/run/php-fpm/www.sock
+osal_php_etc_sock() {
+    echo /var/php-fpm/php${1//.}/run/www.sock
+}
+
 # Returns PHP-FPM directory for a given PHP version
 # multiphp_fpm_pool_d '7.3' = /etc/php/7.3/fpm/pool.d
 osal_php_fpm_pool_d() {
