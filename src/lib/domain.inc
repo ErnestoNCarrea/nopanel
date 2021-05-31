@@ -1,10 +1,10 @@
 #!/bin/bash
 
-nplib_domain_get() {
+nplib_domain_list() {
     osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.user == \"$param_user\") | .name"
 }
 
-nplib_domain_get_json() {
+nplib_domain_list_json() {
     osal_json_get "$NOPANEL_ETC/domains.json" "[.domains[] | select(.user == \"$param_user\")]"
 }
 

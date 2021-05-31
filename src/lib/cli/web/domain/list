@@ -14,10 +14,10 @@ nopanel_web_domain_list() {
     source $NOPANEL_LIB/domain.inc
 
     if [[ "$param_output_json" ]]; then
-        local domainlist=$(nplib_domain_get_json)
+        local domainlist=$(nplib_domain_list_json)
         nopanel_command_return 'ok' 'Domain list' "$domainlist"
     else
-        local domainlist=$(nplib_domain_get)
+        local domainlist=$(nplib_domain_list)
         nopanel_command_return 'ok' 'Domain list' "$domainlist"
     fi
 
