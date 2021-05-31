@@ -1,0 +1,38 @@
+#!/bin/bash
+
+nopanel_web_domain_mod() {
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        return
+    fi
+
+    if [[ ! "$param_user" ]]; then
+        nopanel_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
+    if [[ ! "$param_domain" ]]; then
+        nopanel_command_return 'error' 'Domain name not specified'
+        return
+    fi
+
+    source $NOPANEL_LIB/domain.inc
+
+    if ! nplib_domains_exists "$param_domain"; then
+        nopanel_command_return 'error' 'Domain does not exist'
+        return
+    fi
+
+    # Update noPanel DB
+    nopanel_command_echo "Modifying $param_domain..."
+
+    [[ $param_aliases ]] && nplib_domains_set "$param_domain" 'aliases' "$param_aliases"
+    [[ $param_php ]] && nplib_domains_set "$param_domain" 'php' "$param_php"
+
+    # Build configuration for domain
+    nopanel web domain rebuild
+
+    # Resload web server config
+    nopanel module apache reload
+
+    nopanel_command_return 'ok' 'Domain modified'
+}

@@ -6,8 +6,8 @@ nopanel_web_domain_rebuild() {
         return
     fi
 
-    source $NOPANEL_LIB/domain.inc
     source $NOPANEL_LIB/module.inc
+    source $NOPANEL_LIB/domain.inc
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user "$param_user"
@@ -37,7 +37,7 @@ nopanel_web_domain_rebuild_user() {
 }
 
 nopanel_web_domain_rebuild_user_domain() {
-    param_aliases=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$param_domain\") | .aliases")
+    param_aliases=$(nplib_domains_get "$param_domain" 'aliases')
 
     local USER_HOME="$NOPANEL_HOME/$param_user"
     local DOMAIN_DOCROOT=$USER_HOME/web/$param_domain/public_html

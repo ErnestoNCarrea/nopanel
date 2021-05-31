@@ -14,10 +14,10 @@ nopanel_database_list() {
     source $NOPANEL_LIB/database.inc
 
     if [[ "$param_output_json" ]]; then
-        local dblist=$(nplib_database_get_json)
+        local dblist=$(nplib_databases_list_json)
         nopanel_command_return 'ok' 'Database list' "$dblist"
     else
-        local dblist=$(nplib_database_get)
+        local dblist=$(nplib_databases_list)
         nopanel_command_return 'ok' 'Database list' "$dblist"
     fi
 

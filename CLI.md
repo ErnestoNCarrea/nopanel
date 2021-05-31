@@ -2,14 +2,14 @@
 
 nopanel [--output-json|--output-text|--output-silent]
 
-nopanel ver
-nopanel init
+ver
+init
 
-nopanel module apache install
-nopanel module apache reload
+module apache install
+module apache reload
 
-nopanel module mariadb install
-nopanel module mariadb wipe --force
+module mariadb install
+module mariadb wipe --force
 
 user list
 user add --user=USERNAME --password=PASSWORD --email=EMAIL [--shell=SHELL] [--fullname=FULL_NAME] [--force]
@@ -23,3 +23,8 @@ web domain rebuild [--user=USER] [--domain=DOMAIN]
 database list
 database add --user=USER --db=DBNAME [--dbuser=DBUSER]
 database rebuild [--user=USER] [--db=DBNAME]
+
+module php-fpm info
+module php-fpm install
+module php-fpm add [--version MAJOR.MINOR]
+module php-fpm install

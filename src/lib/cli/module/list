@@ -1,0 +1,18 @@
+#!/bin/bash
+
+nopanel_module_list() {
+    source $NOPANEL_LIB/module.inc
+     
+    if [[ "$param_output_json" ]]; then
+        extra=$(nplib_modules_list_json)
+    else
+        extra=$(nplib_modules_list)
+    fi
+
+    nopanel_command_return 'ok' 'PHP (FPM) module information' "$extra"
+}
+
+# If this files is _not_ being sourced, act immediately
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+    npctl $@
+fi

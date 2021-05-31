@@ -12,7 +12,7 @@ nopanel_database_rebuild() {
         nopanel_db_rebuild_user "$param_user"
     else
         # Rebuild all users
-        for param_user in $(nplib_users_get); do
+        for param_user in $(nplib_users_list); do
             nopanel_db_rebuild_user
         done
         unset param_user

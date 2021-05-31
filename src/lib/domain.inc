@@ -1,13 +1,23 @@
 #!/bin/bash
 
-# nplib_domains_set 'MODULENAME' 'key' 'value'
+# nplib_domains_set 'domain' 'key' 'value'
 nplib_domains_set() {
-    osal_json_set "$NOPANEL_ETC/modules.json" ".\"${1}\".\"${2}\" = \"$3\""
+    osal_json_set "$NOPANEL_ETC/domains.json" ".domains |= map((select(.name == \"$1\") | .$2 = \"$3\") // .)"
 }
 
-# nplib_domains_get 'MODULENAME' 'key'
+# nplib_domains_add 'domain'
+nplib_domains_add() {
+    osal_json_set "$NOPANEL_ETC/domains.json" ".domains += [{name: \"$1\"}]"
+}
+
+# nplib_domains_get 'domain' 'key'
 nplib_domains_get() {
-    osal_json_get "$NOPANEL_ETC/modules.json" ".\"$1\" | .\"$2\""
+    osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$1\") | .$2"
+}
+
+# nplib_domains_get 'domain' 'key'
+nplib_domains_exists() {
+    [[ $(nplib_domains_get "$1" 'name') ]]
 }
 
 nplib_domain_list() {

@@ -1,9 +1,20 @@
 #!/bin/bash
 
+# nplib_users_set 'username' 'key' 'value'
+nplib_users_set() {
+    osal_json_set "$NOPANEL_ETC/users.json" ".\"${1}\".\"${2}\" = \"$3\""
+}
+
+# nplib_users_get 'username' 'key'
 nplib_users_get() {
+    osal_json_get "$NOPANEL_ETC/users.json" ".\"$1\" | .\"$2\""
+}
+
+# nplib_users_list
+nplib_users_list() {
     osal_json_get "$NOPANEL_ETC/users.json" ".users[] | .name"
 }
 
-nplib_users_get_json() {
+nplib_users_list_json() {
     osal_json_get "$NOPANEL_ETC/users.json" "[.users[]]"
 }

@@ -9,10 +9,10 @@ nopanel_user_list() {
     source $NOPANEL_LIB/user.inc
 
     if [[ "$param_output_json" ]]; then
-        local userlist=$(nplib_users_get_json)
+        local userlist=$(nplib_users_list_json)
         nopanel_command_return 'ok' 'User list' "$userlist"
     else
-        local userlist=$(nplib_users_get)
+        local userlist=$(nplib_users_list)
         nopanel_command_return 'ok' 'User list' "$userlist"
     fi
 
