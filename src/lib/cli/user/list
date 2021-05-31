@@ -1,0 +1,17 @@
+#!/bin/bash
+
+nopanel_user_list() {
+    if [[ "$param_help" ]]; then
+        nopanel user help
+        return
+    fi
+
+    if [[ "$param_output_json" ]]; then
+        local userlist=$(osal_json_get "$NOPANEL_ETC/users.json" "[.users[]]")
+        nopanel_command_return 'ok' 'Here you have' "$userlist"
+    else
+        local userlist=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | .name")
+        nopanel_command_return 'ok' 'Here you have' "$userlist"
+    fi
+
+}

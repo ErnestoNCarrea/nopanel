@@ -1,0 +1,19 @@
+#!/bin/bash
+
+nopanel_web_domain_list() {
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        return
+    fi
+
+    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
+
+    if [[ "$param_output_json" ]]; then
+        local domainlist=$(osal_json_get "$NOPANEL_ETC/domains.json" "[.domains[] | select(.user == \"$param_user\")]")
+        nopanel_command_return 'ok' 'Here you have' "$domainlist"
+    else
+        local domainlist=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.user == \"$param_user\") | .name")
+        nopanel_command_return 'ok' 'Here you have' "$domainlist"
+    fi
+
+}
