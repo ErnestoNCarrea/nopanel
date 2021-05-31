@@ -11,11 +11,20 @@ nopanel_command_log() {
     logger -- "$@"
 }
 
+# Outputs command result
+# nopanel_command_return 'ok|error' 'Message' 'additional data'
 nopanel_command_return() {
     if [[ "$param_output_json" ]]; then
-        jq -n ".status=\"$1\"|.message=\"$2\""
+        if [[ "$3" ]]; then
+            jq -n ".status=\"$1\"|.message=\"$2\"|.data=$3"
+        else
+            jq -n ".status=\"$1\"|.message=\"$2\""
+        fi
     elif [[ "$param_output_silent" ]]; then
-        : # Nothing
+        # Only data
+        if [[ "$3" ]]; then
+            echo $3
+        fi
     else
         TERM_COLOR_NONE='\033[0m'
         TERM_COLOR_RED='\033[0;31m'
@@ -26,6 +35,9 @@ nopanel_command_return() {
             echo -e "[ ${TERM_COLOR_RED}error${TERM_COLOR_NONE} ]: $2"
         else
             echo "[ $1 ]: $2"
+        fi
+        if [[ "$3" ]]; then
+            echo $3
         fi
     fi
 
