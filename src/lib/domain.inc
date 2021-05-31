@@ -1,10 +1,18 @@
 #!/bin/bash
 
-nopanel_domain_idn() {
+nplib_domain_get() {
+    osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.user == \"$param_user\") | .name"
+}
+
+nplib_domain_get_json() {
+    osal_json_get "$NOPANEL_ETC/domains.json" "[.domains[] | select(.user == \"$param_user\")]"
+}
+
+nplib_domain_idn() {
     idn -t --quiet -a $1
 }
 
-nopanel_domain_aliases_idn() {
+nplib_domain_aliases_idn() {
     i=1
     local res=""
     for domain_alias in ${1//,/ }; do
