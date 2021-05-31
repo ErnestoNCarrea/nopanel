@@ -6,8 +6,14 @@ nopanel_user_add() {
         return
     fi
 
-    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified (--user)'; return)
-    [[ "$param_password" ]] || (nopanel_command_return 'error' 'User password not specified (--password)'; return)
+    if [[ ! "$param_user" ]]; then
+        nopanel_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
+    if [[ ! "$param_password" ]]; then
+        nopanel_command_return 'error' 'User password not specified (--password)'
+        return
+    fi
     
     local useradd_params="--groups nopanel-users "
     local USER_HOME="$NOPANEL_HOME/$param_user"

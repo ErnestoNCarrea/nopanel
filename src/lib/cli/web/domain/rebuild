@@ -6,6 +6,8 @@ nopanel_web_domain_rebuild() {
         return
     fi
 
+    source $NOPANEL_LIB/domain.inc
+
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user "$param_user"
     else
@@ -13,7 +15,7 @@ nopanel_web_domain_rebuild() {
         for param_user in $(param_output_silent=1 nopanel user list); do
             nopanel_web_domain_rebuild_user
         done
-        user param_user
+        unset param_user
     fi
 
     nopanel_command_return 'ok' 'Domain configuration generated'
@@ -21,7 +23,7 @@ nopanel_web_domain_rebuild() {
 
 
 nopanel_web_domain_rebuild_user() {
-    nopanel_command_echo "Processing user $param_user..."
+    nopanel_command_echo " - Processing user $param_user..."
     if [[ "$param_domain" ]]; then
         nopanel_web_domain_rebuild_user_domain
     else
@@ -36,13 +38,9 @@ nopanel_web_domain_rebuild_user() {
 nopanel_web_domain_rebuild_user_domain() {
     param_aliases=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$param_domain\") | .aliases")
 
-    nopanel_command_echo "Configuring web server for domain $param_domain..."
+    nopanel_command_echo "  - Configuring web server for domain $param_domain..."
 
-    source $NOPANEL_LIB/domain.inc
-    
     local USER_HOME="$NOPANEL_HOME/$param_user"
-    local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
-    local DOMAIN_JSON=$NOPANEL_ETC/domains/${param_domain}.json
 
     #chattr +i $USER_HOME/conf > /dev/null 2>&1
 
@@ -78,8 +76,8 @@ nopanel_web_domain_rebuild_user_domain() {
     ln -f -s $WEB_LOGS/domains/$param_domain.*log \
         $USER_HOME/web/$param_domain/logs/
 
-    local domain_idn=$(nopanel_domain_idn $param_domain)
-    local domain_aliases_idn=$(nopanel_domain_aliases_idn $param_aliases)
+    local domain_idn=$(nplib_domain_idn $param_domain)
+    local domain_aliases_idn=$(nplib_domain_aliases_idn $param_aliases)
     local USER_EMAIL=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .email")
     [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
 

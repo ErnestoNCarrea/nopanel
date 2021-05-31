@@ -11,7 +11,10 @@ nopanel_user_remove() {
         return
     fi
 
-    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
+    if [[ ! "$param_user" ]]; then
+        nopanel_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
 
     local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
     chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1

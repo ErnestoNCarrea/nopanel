@@ -6,12 +6,14 @@ nopanel_user_list() {
         return
     fi
 
+    source $NOPANEL_LIB/user.inc
+
     if [[ "$param_output_json" ]]; then
-        local userlist=$(osal_json_get "$NOPANEL_ETC/users.json" "[.users[]]")
-        nopanel_command_return 'ok' 'Here you have' "$userlist"
+        local userlist=$(nplib_user_get_json)
+        nopanel_command_return 'ok' 'User list' "$userlist"
     else
-        local userlist=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | .name")
-        nopanel_command_return 'ok' 'Here you have' "$userlist"
+        local userlist=$(nplib_user_get)
+        nopanel_command_return 'ok' 'User list' "$userlist"
     fi
 
 }

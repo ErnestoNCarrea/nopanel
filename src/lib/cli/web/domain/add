@@ -6,8 +6,14 @@ nopanel_web_domain_add() {
         return
     fi
 
-    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
-    [[ "$param_domain" ]] || (nopanel_command_return 'error' 'Domain name not specified'; return)
+    if [[ ! "$param_user" ]]; then
+        nopanel_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
+    if [[ ! "$param_domain" ]]; then
+        nopanel_command_return 'error' 'Domain name not specified'
+        return
+    fi
 
     # Update noPanel DB
     nopanel_command_echo "Adding domain $param_domain for user $param_user..."

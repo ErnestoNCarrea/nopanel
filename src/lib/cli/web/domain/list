@@ -6,14 +6,19 @@ nopanel_web_domain_list() {
         return
     fi
 
-    [[ "$param_user" ]] || (nopanel_command_return 'error' 'Username not specified'; return)
+    if [[ ! "$param_user" ]]; then
+        nopanel_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
+
+    source $NOPANEL_LIB/domain.inc
 
     if [[ "$param_output_json" ]]; then
-        local domainlist=$(osal_json_get "$NOPANEL_ETC/domains.json" "[.domains[] | select(.user == \"$param_user\")]")
-        nopanel_command_return 'ok' 'Here you have' "$domainlist"
+        local domainlist=$(nplib_domain_get_json)
+        nopanel_command_return 'ok' 'Domain list' "$domainlist"
     else
-        local domainlist=$(osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.user == \"$param_user\") | .name")
-        nopanel_command_return 'ok' 'Here you have' "$domainlist"
+        local domainlist=$(nplib_domain_get)
+        nopanel_command_return 'ok' 'Domain list' "$domainlist"
     fi
 
 }
