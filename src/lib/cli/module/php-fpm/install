@@ -17,7 +17,7 @@ nopanel_module_php-fpm_install() {
             ;;
     esac
 
-    nplib_module_set_installed 'php-fpm' 'true'
+    nplib_modules_set_installed 'php-fpm' 'true'
 
     nopanel module php-fpm add
     

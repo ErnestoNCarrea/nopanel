@@ -4,7 +4,7 @@ nopanel_module_php-fpm_add() {
     source $NOPANEL_LIB/module.inc
     source $NOPANEL_LIB/php.inc
 
-    if ! nplib_module_get_installed 'php-fpm'; then
+    if ! nplib_modules_get_installed 'php-fpm'; then
         nopanel_command_return 'error' 'PHP (FPM) module not installed'
         return
     fi
@@ -39,7 +39,7 @@ nopanel_module_php-fpm_add() {
     osal_package_preinstall > /dev/null 2>&1
     osal_package_install $php_prefix-fpm > /dev/null 2>&1
 
-    WEB_SERVER=$(nplib_module_get 'web' 'server')
+    WEB_SERVER=$(nplib_modules_get 'web' 'server')
     nopanel_command_echo " - Configuring for $WEB_SERVER..."
 
     # Check if required modules for apache2 are enabled
