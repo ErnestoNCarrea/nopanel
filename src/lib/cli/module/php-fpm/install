@@ -1,0 +1,25 @@
+#!/bin/bash
+
+nopanel_module_php-fpm_install() {
+    source $NOPANEL_LIB/module.inc
+    nopanel_command_echo "Installing noPanel PHP (FPM) module..."
+
+    osal_package_preinstall > /dev/null 2>&1
+
+    case $OS_TYPE in
+        'fedora')
+            nopanel_command_echo " - Adding Remi repository..."
+            osal_package_install "https://rpms.remirepo.net/fedora/remi-release-${OS_VERSION}.rpm" > /dev/null 2>&1
+            ;;
+        'centos')
+            nopanel_command_echo " - Adding Remi repository..."
+            osal_package_install "https://rpms.remirepo.net/enterprise/remi-release-${OS_VERSION}.rpm" > /dev/null 2>&1
+            ;;
+    esac
+
+    nplib_module_set_installed 'php-fpm' 'true'
+
+    nopanel module php-fpm add
+    
+    nopanel_command_return 'ok' 'PHP (FPM) module installed'
+}

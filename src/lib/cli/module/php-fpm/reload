@@ -1,0 +1,9 @@
+#!/bin/bash
+
+nopanel_module_apache_reload() {
+    nopanel_command_echo "Reloading Apache web server..."
+
+    apachectl -k graceful
+        
+    nopanel_command_return 'ok' 'Apache config reloaded'
+}

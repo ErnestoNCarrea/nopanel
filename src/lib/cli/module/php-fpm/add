@@ -1,0 +1,60 @@
+#!/bin/bash
+
+nopanel_module_php-fpm_add() {
+    source $NOPANEL_LIB/module.inc
+    source $NOPANEL_LIB/php.inc
+
+    if ! nplib_module_get_installed 'php-fpm'; then
+        nopanel_command_return 'error' 'PHP (FPM) module not installed'
+        return
+    fi
+    if [[ ! "$param_version" ]]; then
+        param_version="$PHP_DEFAULT_VERSION"
+    fi
+
+    # Verify php version format
+    if [[ ! "$param_version" =~ ^[0-9]\.[0-9]+ ]]; then
+        nopanel_command_return 'error' 'The PHP (FPM) version is invalid'
+        return
+    fi
+
+    # Check version is supported
+    php_version=''
+    for ver in $PHP_SUPPORTED_VERSIONS; do
+        if [ "$param_version" == "$ver" ]; then
+            php_version="$param_version"
+            break;
+        fi
+    done
+    if [ ! "$php_version" ]; then
+        nopanel_command_return 'error' "PHP (FPM) version $param_version is not supported"
+        return
+    fi
+
+    nopanel_command_echo "Adding PHP (FPM) version $param_version..."
+
+    local php_prefix=$(osal_php_package_prefix $php_version)
+
+    # Install php packages
+    osal_package_preinstall > /dev/null 2>&1
+    osal_package_install $php_prefix-fpm > /dev/null 2>&1
+
+    WEB_SERVER=$(nplib_module_get 'web' 'server')
+    nopanel_command_echo " - Configuring for $WEB_SERVER..."
+
+    # Check if required modules for apache2 are enabled
+    if [ "$WEB_SERVER" = 'apache' ]; then
+        osal_apache_module_enable 'proxy_fcgi' > /dev/null 2>&1
+        osal_apache_module_enable 'setenvif' > /dev/null 2>&1
+        osal_apache_module_disable 'mpm_prefork' > /dev/null 2>&1
+        osal_apache_module_enable 'mpm_event' > /dev/null 2>&1
+    fi
+
+    # Enable and start service
+    osal_service_enable $php_prefix-fpm > /dev/null 2>&1
+    osal_service_start $php_prefix-fpm > /dev/null 2>&1
+
+
+
+    nopanel_command_return 'ok' "PHP (FPM) version $param_version added"
+}

@@ -1,6 +1,8 @@
 #!/bin/bash
 
 nopanel_module_apache_install() {
+    source $NOPANEL_LIB/module.inc
+
     nopanel_command_echo "Installing noPanel Apache module..."
 
     osal_service_stop $OSAL_SERVICE_APACHE > /dev/null 2>&1
@@ -30,11 +32,7 @@ nopanel_module_apache_install() {
     cp -f $NOPANEL_DATA/$OS_BASE/apache/status.conf $OSAL_PATH_APACHE_CONF_D/
     cp -f $NOPANEL_DATA/$OS_BASE/logrotate/${OSAL_PKG_APACHE} $OSAL_PATH_LOGROTATE_CONF_D/
 
-    if [ "$OS_BASE" = 'debian' ]; then
-        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default
-        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default-ssl
-        echo -e "/home\npublic_html/cgi-bin" > /etc/apache2/suexec/www-data
-    elif [ "$OS_BASE" = 'rhel' ]; then
+    if [ "$OS_BASE" = 'rhel' ]; then
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/ssl.conf
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/welcome.conf
         echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF_D/userdir.conf
@@ -43,9 +41,15 @@ nopanel_module_apache_install() {
                 DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm
         </IfModule>
 EOL
+    elif [ "$OS_BASE" = 'debian' ]; then
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default
+        echo "# Disabled by noPanel" > $OSAL_PATH_APACHE_CONF/sites-available/default-ssl
+        echo -e "/home\npublic_html/cgi-bin" > /etc/apache2/suexec/www-data
     fi
 
-    osal_json_set "$NOPANEL_ETC/modules.json" ".apache.installed = \"true\" | .apache.serviceName = \"$OSAL_SERVICE_APACHE\" | .web.server = \"apache\" | .web.logs = \"/var/log/$OSAL_PKG_APACHE\""
+    nplib_module_set_installed 'apache' 'true'
+    nplib_module_set 'web' 'server' 'apache'
+    nplib_module_set 'web' 'logs' 'apache' "/var/log/$OSAL_PKG_APACHE"
 
     nopanel_command_echo " - Enabling and starting Apache service"
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
