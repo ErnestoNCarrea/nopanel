@@ -31,6 +31,11 @@ nopanel_init() {
     osal_json_set "$NOPANEL_ETC/domains.json" ".domains += []"
     osal_json_set "$NOPANEL_ETC/databases.json" ".databases += []"
 
+    if [ "$OS_BASE" = 'rhel' ]; then
+        osal_package_preinstall > /dev/null 2>&1
+        osal_package_install epel-release > /dev/null 2>&1
+    fi
+
     nopanel_command_return 'ok' 'noPanel ready'
 }
 
