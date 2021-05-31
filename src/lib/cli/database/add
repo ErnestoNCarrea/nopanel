@@ -1,0 +1,32 @@
+#!/bin/bash
+
+nopanel_database_add() {
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        return
+    fi
+
+
+    if [[ ! "$param_user" ]]; then
+        nopanel_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
+    if [[ ! "$param_db" ]]; then
+        nopanel_command_return 'error' 'Database name not specified (--db)'
+        return
+    fi
+
+    [[ "$param_dbuser" ]] || param_dbuser=$param_db
+
+    # Update noPanel DB
+    nopanel_command_echo "Creating database $param_db for user $param_user..."
+
+    local db_exists=$(osal_json_get "$NOPANEL_ETC/databases.json" ".databases[] | select(.name == \"$param_db\") | .name")
+    [[ "$db_exists" ]] || osal_json_set "$NOPANEL_ETC/databases.json" ".databases += [{name: \"$param_db\"}]"
+    osal_json_set "$NOPANEL_ETC/databases.json" ".databases |= map((select(.name == \"$param_db\") | .user = \"$param_user\" | .dbuser = \"$param_dbuser\" | .password = \"$param_password\") // .)"
+
+    # Create database
+    nopanel database rebuild
+
+    nopanel_command_return 'ok' 'Database created'
+}

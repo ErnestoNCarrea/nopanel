@@ -1,0 +1,57 @@
+#!/bin/bash
+
+nopanel_database_rebuild() {
+    if [[ "$param_help" ]]; then
+        nopanel db help
+        return
+    fi
+
+    source $NOPANEL_LIB/user.inc
+
+    if [[ "$param_user" ]]; then
+        nopanel_db_rebuild_user "$param_user"
+    else
+        # Rebuild all users
+        for param_user in $(nplib_user_get); do
+            nopanel_db_rebuild_user
+        done
+        unset param_user
+    fi
+
+    nopanel_command_return 'ok' 'Domain configuration generated'
+}
+
+
+nopanel_db_rebuild_user() {
+    nopanel_command_echo " - Processing user $param_user..."
+    if [[ "$param_db" ]]; then
+        nopanel_db_rebuild_user_db
+    else
+        # Rebuild all domaind
+        for param_db in $(param_output_silent=1 nopanel database list); do
+            nopanel_db_rebuild_user_db
+        done
+        unset param_db
+    fi
+}
+
+nopanel_db_rebuild_user_db() {
+    param_dbuser=$(osal_json_get "$NOPANEL_ETC/databases.json" ".databases[] | select(.name == \"$param_db\") | .dbuser")
+    local param_password=$(osal_json_get "$NOPANEL_ETC/databases.json" ".databases[] | select(.name == \"$param_db\") | .password")
+    local full_db_name="${param_user}_${param_dbuser}"
+
+    nopanel_command_echo "  - Setting up database $full_db_name..."
+
+    source $NOPANEL_LIB/domain.inc
+    
+    nopanel_db_mysql_query "CREATE DATABASE IF NOT EXISTS \`$full_db_name\`"
+    nopanel_db_mysql_query "GRANT ALL ON \`$full_db_name\`.* TO \`$param_dbuser\`@\`%\` IDENTIFIED BY '$param_password'"
+    nopanel_db_mysql_query "GRANT ALL ON \`$full_db_name\`.* TO \`$param_dbuser\`@localhost IDENTIFIED BY '$param_password'"
+}
+
+nopanel_db_mysql_query() {
+    local tmpfile=$(mktemp)
+    echo "$1" > $tmpfile
+    mysql < "$tmpfile"  2>/dev/null
+    rm -f "$tmpfile"
+}
