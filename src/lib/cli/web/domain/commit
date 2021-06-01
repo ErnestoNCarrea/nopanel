@@ -1,0 +1,119 @@
+#!/bin/bash
+
+nopanel_web_domain_commit() {
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        return
+    fi
+
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/user.inc
+    nplib_require $NOPANEL_LIB/domain.inc
+
+    if [[ "$param_user" ]]; then
+        nopanel_web_domain_rebuild_user "$param_user"
+    else
+        # Rebuild all users
+        for param_user in $(nplib_users_list); do
+            nopanel_web_domain_rebuild_user
+        done
+        unset param_user
+    fi
+
+    nplib_command_output 'ok' 'Domain configuration generated'
+}
+
+nopanel_web_domain_rebuild_user() {
+    nplib_command_echo " - Processing user $param_user..."
+    if [[ "$param_domain" ]]; then
+        nopanel_web_domain_rebuild_user_domain
+    else
+        # Rebuild all domaind
+        for param_domain in $(nplib_domains_list $param_user); do
+            nopanel_web_domain_rebuild_user_domain
+        done
+        unset param_domain
+    fi
+}
+
+nopanel_web_domain_rebuild_user_domain() {
+    local DOMAIN_WEB=$(nplib_domains_get "$param_domain" 'web')
+    if ! nplib_is_true $DOMAIN_WEB; then
+        return
+    fi
+    nplib_command_echo "  - Configuring web server for domain $param_domain..."
+
+    # Create and populate default folders
+    local DOMAIN_FOLDER=$USER_HOME/web/$param_domain
+    local DOMAIN_DOCROOT=$DOMAIN_FOLDER/public_html
+    mkdir -p $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
+    chown $param_user:$param_user "$USER_HOME/web"
+    chown $param_user:$param_user $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
+
+    local DOMAIN_ALIASES=$(nplib_domains_get "$param_domain" 'web_aliases')
+    local DOMAIN_PHP=$(nplib_domains_get "$param_domain" 'php')
+    local USER_HOME="$NOPANEL_HOME/$param_user"
+    local DOMAIN_IDN=$(nplib_domain_idn $param_domain)
+    local DOMAIN_ALIASES_IDN=$(nplib_domain_aliases_idn $DOMAIN_ALIASES)
+    local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
+    [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
+    local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
+    local WEB_SERVER=$(nplib_modules_get 'web' 'server')
+    local APACHE_DEFINES='Define NOPANEL'
+
+    if [[ "$DOMAIN_ALIASES" ]]; then
+        local APACHE_ALIASES="ServerAlias ${DOMAIN_ALIASES_IDN//,/ }"
+        APACHE_DEFINES="$APACHE_DEFINES NOPANEL_HAS_ALIASES"
+    else
+        local APACHE_ALIASES=''
+    fi
+
+    pushd $NOPANEL_DATA/web/skel > /dev/null
+    for FILE in $(find ./ -type f); do
+        nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel" $FILE "$DOMAIN_FOLDER"
+    done
+    popd > /dev/null
+
+    # Setup logs
+    touch $WEB_LOGS/domains/$param_domain.bytes \
+        $WEB_LOGS/domains/$param_domain.log \
+        $WEB_LOGS/domains/$param_domain.error.log
+    ln -f -s $WEB_LOGS/domains/$param_domain.*log \
+        $DOMAIN_FOLDER/logs/
+
+    # Apache config
+
+    #mkdir -p $USER_HOME/nopanel/web
+    #chown -R $param_user:$param_user "$USER_HOME/nopanel/web"
+    local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
+    nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/apache/domain.conf" $APACHE_CONF_FILE 'overwrite'
+
+    # set a link to the apache config in the user directory
+    # ln -s -f $APACHE_CONF_FILE "$USER_HOME/nopanel/web/apache-$param_domain.conf"
+}
+
+# copy a file to a destination, replacing template vars
+# nopanel_web_domain_commit_install_file '/src/folder/file' '/dst/folder/file' [overwrite]
+nopanel_web_domain_commit_install_file() {
+    SRC_FILE=$1
+    DST_FILE=$2
+    if [ ! -f $DST_FILE ] || [ "$3" = 'overwrite' ]; then
+        cat $SRC_FILE | sed \
+            -e "s|%NOPANEL_IP%|\*|g" \
+            -e "s|%NOPANEL_USER%|$param_user|g" \
+            -e "s|%NOPANEL_USER_GROUP%|$param_user|g" \
+            -e "s|%NOPANEL_USER_HOME%|$USER_HOME|g" \
+            -e "s|%NOPANEL_USER_EMAIL%|$USER_EMAIL|g" \
+            -e "s|%NOPANEL_DOMAIN%|$param_domain|g" \
+            -e "s|%NOPANEL_DOMAIN_IDN%|$DOMAIN_IDN|g" \
+            -e "s|%NOPANEL_ALIASES%|${DOMAIN_ALIASES//,/ }|g" \
+            -e "s|%NOPANEL_ALIASES_IDN%|$DOMAIN_ALIASES_IDN|g" \
+            -e "s|%NOPANEL_WEB_LOGS%|$WEB_LOGS|g" \
+            -e "s|%NOPANEL_DOCROOT%|$DOMAIN_DOCROOT|g" \
+            -e "s|%NOPANEL_APACHE_DEFINES%|$APACHE_DEFINES|g" \
+            -e "s|%NOPANEL_APACHE_ALIASES%|${APACHE_ALIASES}|g" \
+            -e "s|%NOPANEL_PHP_FPM%|$PHP_FPM|g" \
+            -e "s|%NOPANEL_PHP_FPM_SOCK%|$PHP_FPM_SOCK|g" \
+        > $DST_FILE
+    fi
+}
