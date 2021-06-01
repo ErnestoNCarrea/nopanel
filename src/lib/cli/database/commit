@@ -1,11 +1,12 @@
 #!/bin/bash
 
-nopanel_database_rebuild() {
+nopanel_database_commit() {
     if [[ "$param_help" ]]; then
         nopanel db help
         return
     fi
 
+    nplib_auto_elevate
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/database.inc
 
