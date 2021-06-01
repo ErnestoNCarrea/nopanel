@@ -47,7 +47,7 @@ do
         break
     elif [ "$cmd_file" ]; then
         # We have a partial path, but component not found
-        echo "Unrecognized command: $@ ('$arg' not found in $cmd_file)"
+        cmd_type='not-found'
         return 1
         break
     fi
