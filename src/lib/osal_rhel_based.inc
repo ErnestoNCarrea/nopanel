@@ -159,8 +159,8 @@ osal_php_etc_folder() {
     echo /etc/opt/remi/php${1//.}
 }
 
-# osal_php_etc_sock '7.3' = /var/opt/remi/php73/run/php-fpm/www.sock
-osal_php_etc_sock() {
+# osal_php_fpm_sock '7.3' = /var/opt/remi/php73/run/php-fpm/www.sock
+osal_php_fpm_sock() {
     echo /var/opt/remi/php${1//.}/run/php-fpm/www.sock
 }
 

@@ -27,7 +27,14 @@ nopanel_web_domain_mod() {
 
     nplib_domains_set "$param_domain" 'web' 'true'
     [[ $param_aliases ]] && nplib_domains_set "$param_domain" 'web_aliases' "$param_aliases"
-    [[ $param_php ]] && nplib_domains_set "$param_domain" 'web_php' "$param_php"
+
+
+    if nplib_is_false $param_php; then
+        nplib_domains_set "$param_domain" 'web_php' 'false'
+    elif [[ $param_php ]]; then
+        nplib_domains_set "$param_domain" 'web_php' "$param_php"
+    fi
+    
 
     # Build configuration for domain
     nopanel web domain commit

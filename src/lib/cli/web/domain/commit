@@ -44,6 +44,7 @@ nopanel_web_domain_rebuild_user_domain() {
     nplib_command_echo "  - Configuring web server for domain $param_domain..."
 
     # Create and populate default folders
+    local USER_HOME="$NOPANEL_HOME/$param_user"
     local DOMAIN_FOLDER=$USER_HOME/web/$param_domain
     local DOMAIN_DOCROOT=$DOMAIN_FOLDER/public_html
     mkdir -p $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
@@ -51,8 +52,7 @@ nopanel_web_domain_rebuild_user_domain() {
     chown $param_user:$param_user $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
 
     local DOMAIN_ALIASES=$(nplib_domains_get "$param_domain" 'web_aliases')
-    local DOMAIN_PHP=$(nplib_domains_get "$param_domain" 'php')
-    local USER_HOME="$NOPANEL_HOME/$param_user"
+    local DOMAIN_PHP=$(nplib_domains_get "$param_domain" 'web_php')
     local DOMAIN_IDN=$(nplib_domain_idn $param_domain)
     local DOMAIN_ALIASES_IDN=$(nplib_domain_aliases_idn $DOMAIN_ALIASES)
     local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
@@ -63,9 +63,16 @@ nopanel_web_domain_rebuild_user_domain() {
 
     if [[ "$DOMAIN_ALIASES" ]]; then
         local APACHE_ALIASES="ServerAlias ${DOMAIN_ALIASES_IDN//,/ }"
-        APACHE_DEFINES="$APACHE_DEFINES NOPANEL_HAS_ALIASES"
+        APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_HAS_ALIASES"
     else
         local APACHE_ALIASES=''
+    fi
+
+    if ! nplib_is_false $DOMAIN_PHP; then
+        APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_PHP_FPM"
+        local PHP_FPM=$DOMAIN_PHP
+        local PHP_FPM_SOCK=$(osal_php_fpm_sock $DOMAIN_PHP)
+        local PHP_FPM_FGCI='localhost'
     fi
 
     pushd $NOPANEL_DATA/web/skel > /dev/null
@@ -114,6 +121,7 @@ nopanel_web_domain_commit_install_file() {
             -e "s|%NOPANEL_APACHE_ALIASES%|${APACHE_ALIASES}|g" \
             -e "s|%NOPANEL_PHP_FPM%|$PHP_FPM|g" \
             -e "s|%NOPANEL_PHP_FPM_SOCK%|$PHP_FPM_SOCK|g" \
+            -e "s|%NOPANEL_PHP_FPM_FGCI%|$PHP_FPM_FGCI|g" \
         > $DST_FILE
     fi
 }
