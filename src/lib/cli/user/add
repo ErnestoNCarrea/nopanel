@@ -7,13 +7,15 @@ nopanel_user_add() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nopanel_command_return 'error' 'Username not specified (--user)'
+        nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
     if [[ ! "$param_password" ]]; then
-        nopanel_command_return 'error' 'User password not specified (--password)'
+        nplib_command_return 'error' 'User password not specified (--password)'
         return
     fi
+
+    source $NOPANEL_LIB/user.inc
     
     local useradd_params="--groups nopanel-users "
     local USER_HOME="$NOPANEL_HOME/$param_user"
@@ -26,9 +28,9 @@ nopanel_user_add() {
     if [[ -d "$USER_HOME" ]]; then
         if [[ "$param_force" ]]; then
             useradd_params="$useradd_params --no-create-home"     # Do not create home directory
-            nopanel_command_echo 'Not creating home directory because it already exists'
+            nplib_command_echo 'Not creating home directory because it already exists'
         else
-            nopanel_command_return 'error' 'The user home directory already exists'
+            nplib_command_return 'error' 'The user home directory already exists'
             return
         fi
     else
@@ -39,10 +41,10 @@ nopanel_user_add() {
     # Add user and set password
     if id -u "$param_user" &>/dev/null; then
         if [[ ! "$param_force" ]]; then
-            nopanel_command_return 'error' 'The user already exists'
+            nplib_command_return 'error' 'The user already exists'
             return
         fi
-        nopanel_command_echo 'Not creating user because it already exists'
+        nplib_command_echo 'Not creating user because it already exists'
     else
         /usr/sbin/useradd $useradd_params $param_user > /dev/null 2>&1
     fi
@@ -83,10 +85,13 @@ nopanel_user_add() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
+    [[ "$param_admin" ]] && param_admin='yes'
+
     nplib_users_set "$param_user" 'name' "$param_user"
     nplib_users_set "$param_user" 'shell' "$param_shell"
     nplib_users_set "$param_user" 'email' "$param_email"
+    nplib_users_set "$param_user" 'admin' "$param_admin"
     nplib_users_set "$param_user" 'fullname' "$param_fullname"
 
-    nopanel_command_return 'ok' 'User added'
+    nplib_command_return 'ok' 'User added'
 }

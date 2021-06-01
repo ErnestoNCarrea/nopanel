@@ -10,10 +10,10 @@ nopanel_user_list() {
 
     if [[ "$param_output_json" ]]; then
         local userlist=$(nplib_users_list_json)
-        nopanel_command_return 'ok' 'User list' "$userlist"
+        nplib_command_return 'ok' 'User list' "$userlist"
     else
         local userlist=$(nplib_users_list)
-        nopanel_command_return 'ok' 'User list' "$userlist"
+        nplib_command_return 'ok' 'User list' "$userlist"
     fi
 
 }

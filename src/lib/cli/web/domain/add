@@ -7,11 +7,11 @@ nopanel_web_domain_add() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nopanel_command_return 'error' 'Username not specified (--user)'
+        nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
     if [[ ! "$param_domain" ]]; then
-        nopanel_command_return 'error' 'Domain name not specified'
+        nplib_command_return 'error' 'Domain name not specified'
         return
     fi
 
@@ -21,7 +21,7 @@ nopanel_web_domain_add() {
     [[ ! "$param_php" ]] && param_php='no'
 
     # Update noPanel DB
-    nopanel_command_echo "Adding domain $param_domain for user $param_user..."
+    nplib_command_echo "Adding domain $param_domain for user $param_user..."
 
     nplib_domains_set "$param_domain" 'name' "$param_domain"
     nplib_domains_set "$param_domain" 'user' "$param_user"
@@ -35,5 +35,5 @@ nopanel_web_domain_add() {
     # Resload web server config
     nopanel module apache reload
 
-    nopanel_command_return 'ok' 'Domain added'
+    nplib_command_return 'ok' 'Domain added'
 }

@@ -4,14 +4,14 @@ nopanel_module_php-fpm_info() {
     source $NOPANEL_LIB/module.inc
     source $NOPANEL_LIB/php.inc
 
-    nopanel_command_echo "noPanel PHP (FPM) module information"
+    nplib_command_echo "noPanel PHP (FPM) module information"
 
-    nopanel_command_echo "Supported PHP versions   : $PHP_SUPPORTED_VERSIONS"
-    nopanel_command_echo "Default PHP version      : $PHP_DEFAULT_VERSION"
+    nplib_command_echo "Supported PHP versions   : $PHP_SUPPORTED_VERSIONS"
+    nplib_command_echo "Default PHP version      : $PHP_DEFAULT_VERSION"
 
     [[ "$param_output_json" ]] && local extra="{supportedVersion: \"$PHP_SUPPORTED_VERSIONS\", defaultVersion: \"$PHP_DEFAULT_VERSION\"}"
 
-    nopanel_command_return 'ok' 'PHP (FPM) module information' "$extra"
+    nplib_command_return 'ok' 'PHP (FPM) module information' "$extra"
 }
 
 # If this files is _not_ being sourced, act immediately

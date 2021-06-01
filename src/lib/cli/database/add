@@ -8,11 +8,11 @@ nopanel_database_add() {
 
 
     if [[ ! "$param_user" ]]; then
-        nopanel_command_return 'error' 'Username not specified (--user)'
+        nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
     if [[ ! "$param_db" ]]; then
-        nopanel_command_return 'error' 'Database name not specified (--db)'
+        nplib_command_return 'error' 'Database name not specified (--db)'
         return
     fi
 
@@ -20,7 +20,7 @@ nopanel_database_add() {
     local full_db_name="${param_user}_${param_db}"
 
     # Update noPanel DB
-    nopanel_command_echo "Creating database $param_db for user $param_user..."
+    nplib_command_echo "Creating database $param_db for user $param_user..."
 
     nplib_databases_set "$full_db_name" 'name' "$param_db"
     nplib_databases_set "$full_db_name" 'user' "$param_user"
@@ -31,5 +31,5 @@ nopanel_database_add() {
     # Create database
     nopanel database rebuild
 
-    nopanel_command_return 'ok' 'Database created'
+    nplib_command_return 'ok' 'Database created'
 }

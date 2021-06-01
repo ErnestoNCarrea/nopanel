@@ -20,11 +20,11 @@ nopanel_web_domain_rebuild() {
         unset param_user
     fi
 
-    nopanel_command_return 'ok' 'Domain configuration generated'
+    nplib_command_return 'ok' 'Domain configuration generated'
 }
 
 nopanel_web_domain_rebuild_user() {
-    nopanel_command_echo " - Processing user $param_user..."
+    nplib_command_echo " - Processing user $param_user..."
     if [[ "$param_domain" ]]; then
         nopanel_web_domain_rebuild_user_domain
     else
@@ -50,7 +50,7 @@ nopanel_web_domain_rebuild_user_domain() {
     WEB_SERVER=$(nplib_modules_get 'web' 'server')
     APACHE_DEFINES='Define NOPANEL'
 
-    nopanel_command_echo "  - Configuring web server for domain $param_domain..."
+    nplib_command_echo "  - Configuring web server for domain $param_domain..."
 
     # Create and populate default folders
     mkdir -p $DOMAIN_DOCROOT $USER_HOME/web/$param_domain/logs

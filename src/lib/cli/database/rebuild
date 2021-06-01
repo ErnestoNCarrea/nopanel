@@ -19,12 +19,12 @@ nopanel_database_rebuild() {
         unset param_user
     fi
 
-    nopanel_command_return 'ok' 'Domain configuration generated'
+    nplib_command_return 'ok' 'Domain configuration generated'
 }
 
 
 nopanel_db_rebuild_user() {
-    nopanel_command_echo " - Processing user $param_user..."
+    nplib_command_echo " - Processing user $param_user..."
     if [[ "$param_db" ]]; then
         nopanel_db_rebuild_user_db
     else
@@ -41,7 +41,7 @@ nopanel_db_rebuild_user_db() {
     local param_dbuser=$(nplib_databases_get "full_db_name" 'dbuser')
     local param_password=$(nplib_databases_get "full_db_name" 'password')
 
-    nopanel_command_echo "  - Setting up database $full_db_name..."
+    nplib_command_echo "  - Setting up database $full_db_name..."
 
     source $NOPANEL_LIB/domain.inc
     

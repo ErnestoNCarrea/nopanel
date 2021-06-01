@@ -7,7 +7,7 @@ nopanel_user_mod() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nopanel_command_return 'error' 'Username not specified (--user)'
+        nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
     
@@ -19,25 +19,25 @@ nopanel_user_mod() {
     if [[ "$param_shell" ]]; then
         param_shell=$(grep -w "$param_shell" /etc/shells | head -n1)
         if [[ ! "$param_shell" ]]; then
-            nopanel_command_return 'error' 'Unrecognized shell'
+            nplib_command_return 'error' 'Unrecognized shell'
             return
         fi
-        nopanel_command_echo ' - Setting shell'
+        nplib_command_echo ' - Setting shell'
         /usr/sbin/usermod --shell "$param_shell" "$param_user" > /dev/null 2>&1
         osal_json_set "$USER_JSON" ".shell = \"$param_shell\""
     fi
     
     if [[ "$param_password" ]]; then
-        nopanel_command_echo ' - Setting password'
+        nplib_command_echo ' - Setting password'
         echo "$param_user:$param_password" | /usr/sbin/chpasswd
     fi
 
     if [[ "$param_email" ]]; then
-        nopanel_command_echo ' - Setting e-mail address'
+        nplib_command_echo ' - Setting e-mail address'
         osal_json_set "$USER_JSON" ".email = \"$param_email\""
     fi
 
-    nopanel_command_echo ' - Setting up home directory and permissions'
+    nplib_command_echo ' - Setting up home directory and permissions'
     # Add membership to nopanel-users group to non-admin users
     if [ "$param_user" = "admin" ]; then
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
@@ -69,5 +69,5 @@ nopanel_user_mod() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
-    nopanel_command_return 'ok' 'User changed'
+    nplib_command_return 'ok' 'User changed'
 }

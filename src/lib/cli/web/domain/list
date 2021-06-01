@@ -7,7 +7,7 @@ nopanel_web_domain_list() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nopanel_command_return 'error' 'Username not specified (--user)'
+        nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
 
@@ -15,10 +15,10 @@ nopanel_web_domain_list() {
 
     if [[ "$param_output_json" ]]; then
         #local domainlist=
-        nopanel_command_return 'ok' 'Domain list' $(nplib_domains_list_json "$param_user")
+        nplib_command_return 'ok' 'Domain list' $(nplib_domains_list_json "$param_user")
     else
         local domainlist=$(nplib_domains_list "$param_user")
-        nopanel_command_return 'ok' 'Domain list' "$domainlist"
+        nplib_command_return 'ok' 'Domain list' "$domainlist"
     fi
 
 }
