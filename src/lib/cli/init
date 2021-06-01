@@ -33,6 +33,14 @@ nopanel_init() {
     nplib_command_echo " - Installing template files..."
     nplib_install_template_files "etc/*" "/etc/"
 
+    # merge .json.dist into .json files (will not overwrite any .json value)
+    for FILE in /etc/nopanel/*.json.dist
+    do
+        local tmpfile=$(mktemp)
+        DST_FILE=${FILE%.*} # file without .dist
+        jq -s ".[0] * .[1]" $FILE $DST_FILE > "$tmpfile" && (chown --reference=$DST_FILE $tmpfile; chmod --reference=$DST_FILE $tmpfile; mv "$tmpfile" "$DST_FILE")
+    done
+
     if [ "$OS_BASE" = 'rhel' ]; then
         nplib_command_echo " - Enabling EPEL repository..."
         osal_package_preinstall > /dev/null 2>&1

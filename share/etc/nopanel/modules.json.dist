@@ -1,0 +1,40 @@
+{
+    "apache": {
+        "name": "apache",
+        "installed": "false",
+        "description": "Apache web server",
+        "porvides": "web-server",
+        "serviceName": "httpd"
+    },
+    "web": {
+        "meta": "true",
+        "description": "Web server meta-module",
+        "server": "",
+        "logs": ""
+    },
+    "php-fpm": {
+        "name": "php-fpm",
+        "installed": "false",
+        "description": "Web server meta-module",
+        "porvides": "php-fpm",
+        "requires": "web-server",
+        "5.6": "false",
+        "7.0": "false",
+        "7.1": "false",
+        "7.2": "false",
+        "7.3": "false",
+        "7.4": "false",
+        "8.0": "false"
+    },
+    "mariadb": {
+        "name": "mariadb",
+        "installed": "false",
+        "description": "MariaDB database server",
+        "porvides": "mysql",
+        "serviceName": "mariadb",
+        "host": "localhost",
+        "user": "root",
+        "password": "",
+        "port": "3306"
+    }
+}
