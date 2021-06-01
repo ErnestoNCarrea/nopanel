@@ -39,7 +39,7 @@ nplib_command_output() {
             echo "[ $1 ]: $2"
         fi
         if [[ "$3" ]]; then
-            echo $3
+            echo -e $3
         fi
     fi
 
