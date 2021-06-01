@@ -9,7 +9,7 @@ nopanel_module_list() {
         extra=$(nplib_modules_list)
     fi
 
-    nplib_command_return 'ok' 'PHP (FPM) module information' "$extra"
+    nplib_command_return 'ok' 'noPanel module information' "$extra"
 }
 
 # If this files is _not_ being sourced, act immediately
