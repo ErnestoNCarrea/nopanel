@@ -41,7 +41,7 @@ cp -rfa "%{_sourcedir}/../share"/* "%{buildroot}/usr/share/nopanel/"
 %pre
 
 %post
-%{_bindir}/nopanel init --output-silent
+%{_bindir}/nopanel init --interactive false --output silent
 
 %preun
 
