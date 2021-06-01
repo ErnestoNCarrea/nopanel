@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_module_mariadb_wipe() {
-    nplib_elevate
+    nplib_auto_elevate
     if [[ ! "$param_force" ]]; then
         nplib_command_output 'error' 'Refusing to wipe MariaDB unless --force is used'
         return

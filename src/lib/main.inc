@@ -3,7 +3,7 @@
 # © Ernesto N. Carrea / https://www.nopanel.cc
 
 nplib_command_echo() {
-    if [[ "$param_interactive" != "false" ]] && [ ! "$param_output" ]; then
+    if nplib_is_false $param_interactive && [[ ! "$param_output" ]]; then
         echo "$@"
     fi
     nplib_command_log "$@"
@@ -112,6 +112,48 @@ nplib_install_template_files() {
     fi
 }
 
+# test if a value is a valid boolean according to noPanel
+# 'yes', 'true', 'on' and '1' are all true
+# 'no', 'false', 'off' and '0' are all false
+nplib_is_bool() {
+    [[ $(nplib_bool_value $1) ]]
+}
+
+nplib_bool_value() {
+    if nplib_is_true $1; then
+        echo 'true'
+    elif nplib_is_false $1; then
+        echo 'false'
+    fi
+}
+
+# test if a value is a 'truthy' according to noPanel
+# 'yes', 'true', 'on' and '1' are all true
+nplib_is_true() {
+    if [ "${1,,}" = 'yes' ] \
+        || [ "${1,,}" = 'true' ] \
+        || [ "${1,,}" = 'on' ] \
+        || [ "$1" = '1' ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# test if a value is a 'falsy' according to noPanel
+# 'no', 'false', 'off' and '0' are all false
+nplib_is_false() {
+    if [ "${1,,}" = 'no' ] \
+        || [ "${1,,}" = 'false' ] \
+        || [ "${1,,}" = 'off' ] \
+        || [ "$1" = '0' ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+
 nplib_is_nopanel_admin() {
     local usr=$1
     [[ "$usr" ]] || usr=$USER
@@ -135,7 +177,25 @@ nplib_check_user() {
         fi
     elif [ ! $param_user = $USER ]; then
         # admin trying to impersonate another user, auto elevate
+        nplib_auto_elevate
+    fi
+}
+
+# auto elevate privileges, or die
+nplib_auto_elevate() {
+    if [ "$EUID" -eq 0 ]; then
+        return;
+    fi
+
+    local auto_elevate=$(osal_json_get "$NOPANEL_ETC/nopanel.json" ".\"prefs\".\"autoElevate\"")
+    if nplib_is_true $auto_elevate; then
         nplib_elevate
+    elif nplib_is_nopanel_admin; then
+        nplib_command_output 'error' "You need to be root for that (try with sudo)"
+        exit 1
+    else
+        nplib_command_output 'error' 'You are not allowed to use that command, ask your administrator'
+        exit 1
     fi
 }
 

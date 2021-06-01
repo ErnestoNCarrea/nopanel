@@ -11,6 +11,7 @@ nopanel_user_commit() {
         return
     fi
 
+    nplib_auto_elevate
     nplib_require $NOPANEL_LIB/user.inc
     
     USER_HOME="$NOPANEL_HOME/$param_user"
@@ -45,6 +46,11 @@ nopanel_user_commit() {
     fi
 
     nplib_command_echo ' - Setting up home directory and permissions'
+    
+    mkdir -p $USER_HOME
+    chown $param_user:$param_user $USER_HOME
+    chmod 0775 $USER_HOME
+
     # Add membership to nopanel-users group to non-admin users
     if [ "$param_user" = "admin" ]; then
         setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
@@ -64,18 +70,21 @@ nopanel_user_commit() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
+    chgrp nopanel-admins $USER_HOME/nopanel
+    chmod 0750 $USER_HOME/nopanel
+
     nplib_command_echo ' - Creating user noPanel environment'
     for FILE in nopanel.json domains.json databases.json
     do
         [[ -f "$USER_HOME/nopanel/$FILE" ]] || echo '{}' > "$USER_HOME/nopanel/$FILE"
-        chmod 0660 $USER_HOME/nopanel/$FILE
-        chown $param_user:$param_user $USER_HOME/nopanel/$FILE
+        chmod 0640 $USER_HOME/nopanel/$FILE
+        chown $param_user:nopanel-admins $USER_HOME/nopanel/$FILE
     done
 }
 
 nopanel_user_commit_create_owned_folder() {
     if [[ ! -d $1 ]]; then
         mkdir -p $1
-        chown $param_user:$param_user $1
     fi
+    chown $param_user:$param_user $1
 }

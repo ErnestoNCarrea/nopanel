@@ -6,7 +6,7 @@ if [[ -z "$NOPANEL_VERSION" ]]; then
 fi
 
 nopanel_init() {
-    nplib_elevate
+    nplib_auto_elevate
     nplib_command_echo "Initializing noPanel version $NOPANEL_VERSION"
 
     # Add a general group for normal users and admins

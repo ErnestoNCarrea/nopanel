@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_module_apache_install() {
-    nplib_elevate
+    nplib_auto_elevate
     nplib_require $NOPANEL_LIB/module.inc
 
     nplib_command_echo "Installing noPanel Apache module..."
