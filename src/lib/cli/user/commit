@@ -19,16 +19,29 @@ nopanel_user_commit() {
     local USER_EMAIL=$(nplib_users_set "$param_user" 'email')
     local USER_SHELL=$(nplib_users_set "$param_user" 'shell')
     local USER_ADMIN=$(nplib_users_set "$param_user" 'admin')
+    local useradd_params="--groups nopanel-users "
+
+    # Add user and set password
+    if ! id "$param_user" &>/dev/null; then
+        if [[ -d "$USER_HOME" ]]; then
+            useradd_params="$useradd_params --no-create-home"     # Do not create home directory
+            nplib_command_echo ' - Not creating home directory because it already exists'
+        else
+            # Create user home directory
+            useradd_params="$useradd_params --create-home --home-dir $USER_HOME"
+        fi
+
+        /usr/sbin/useradd $useradd_params $param_user > /dev/null 2>&1
+    fi
 
     # Default shell
     if [[ "$USER_SHELL" ]]; then
         USER_SHELL=$(grep -w "$USER_SHELL" /etc/shells | head -n1)
         if [[ ! "$USER_SHELL" ]]; then
-            nplib_command_output 'error' 'Unrecognized shell'
-            return 1
+            nplib_command_echo " - Ignoring unrecognized shell $USER_SHELL"
+        else
+            /usr/sbin/usermod --shell "$USER_SHELL" "$param_user" > /dev/null 2>&1
         fi
-        nplib_command_echo ' - Setting shell'
-        /usr/sbin/usermod --shell "$USER_SHELL" "$param_user" > /dev/null 2>&1
     fi
 
     nplib_command_echo ' - Setting up home directory and permissions'
