@@ -168,7 +168,7 @@ nplib_check_user() {
         # is regular user
         if [[ "$param_user" ]] && [ ! "$param_user" = "$USER" ]; then
             # can only use it's own username
-            nplib_command_output 'error' "You are not allowed to become $param_user"
+            nplib_command_output 'error' "You are not $param_user (nor able to act in the name of)"
             exit 1
         fi
 
