@@ -119,6 +119,7 @@ nplib_is_bool() {
     [[ $(nplib_bool_value $1) ]]
 }
 
+# returns 'true' for truthy values, false for falsy values, nothing for everythin else
 nplib_bool_value() {
     if nplib_is_true $1; then
         echo 'true'
