@@ -43,6 +43,8 @@ nopanel_module_apache_install() {
     fi
 
     nplib_modules_set_installed 'apache' 'true'
+    nplib_modules_set 'apache' 'serviceName' "$OSAL_SERVICE_APACHE"
+
     nplib_modules_set 'web' 'server' 'apache'
     nplib_modules_set 'web' 'logs' "/var/log/$OSAL_PKG_APACHE"
 

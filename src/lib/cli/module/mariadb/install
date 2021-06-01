@@ -6,7 +6,7 @@ nopanel_module_mariadb_install() {
     local mariadb_version='10.5'
 
     osal_service_stop $OSAL_SERVICE_MARIADB > /dev/null 2>&1
-    nopanel_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D $OSAL_PATH_MARIADB_DATA
+    nopanel_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
 
     nopanel_command_echo " - Installing MariaDB package(s)"
     # Setup repos
@@ -24,7 +24,7 @@ EOL
         apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' > /dev/null 2>&1
     elif [ "$OS_BASE" = 'rhel' ]; then
         # Remove conflicting OS-provided packages
-        osal_package_remove mariadb-server mariadb-gssapi-server
+        osal_package_remove mariadb-server mariadb-gssapi-server > /dev/null 2>&1
 
         cat > "/etc/yum.repos.d/mariadb.repo" <<EOL
 # This file was added by noPanel (http://www.nopanel.cc)
@@ -62,8 +62,8 @@ EOL
 
     nopanel_command_echo " - Enabling and starting MariaDB service"
 
-    osal_service_enable $OSAL_SERVICE_MARIADB
-    osal_service_start $OSAL_SERVICE_MARIADB
+    osal_service_enable $OSAL_SERVICE_MARIADB > /dev/null 2>&1
+    osal_service_start $OSAL_SERVICE_MARIADB > /dev/null 2>&1
 
     nopanel_command_echo " - Additional MariaDB configuration"
 
@@ -87,8 +87,12 @@ EOL
     mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > /dev/null 2>&1
     mysql -e "DROP DATABASE test" > /dev/null 2>&1
 
-    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.installed = \"true\" | .mariadb.serviceName = \"$OSAL_SERVICE_MARIADB\"" 
-    osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.host = \"localhost\" | .mariadb.port = 3306 | .mariadb.user = \"root\""
+    nplib_modules_set_installed 'mariadb' 'true'
+    nplib_modules_set 'mariadb' 'serviceName' "$OSAL_SERVICE_MARIADB"
+    nplib_modules_set 'mariadb' 'host' 'localhost'
+    nplib_modules_set 'mariadb' 'user' 'root'
+    nplib_modules_set 'mariadb' 'port' '3306'
+    [[ "mariadb_root_password" ]] && nplib_modules_set 'mariadb' 'password' "$mariadb_root_password"
         
     nopanel_command_return 'ok' 'MariaDB module installed'
 }

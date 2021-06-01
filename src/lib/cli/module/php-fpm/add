@@ -9,6 +9,11 @@ nopanel_module_php-fpm_add() {
         return
     fi
     if [[ ! "$param_version" ]]; then
+        nopanel_command_return 'error' 'PHP version not specified (--version)'
+        return
+    fi
+
+    if [ "$param_version" = 'default' ]; then
         param_version="$PHP_DEFAULT_VERSION"
     fi
 
@@ -26,14 +31,14 @@ nopanel_module_php-fpm_add() {
             break;
         fi
     done
-    if [ ! "$php_version" ]; then
+    if [[ ! "$php_version" ]]; then
         nopanel_command_return 'error' "PHP (FPM) version $param_version is not supported"
         return
     fi
 
     nopanel_command_echo "Adding PHP (FPM) version $param_version..."
 
-    local php_prefix=$(osal_php_package_prefix $php_version)
+    local php_prefix=$(osal_php_package_prefix $param_version)
 
     # Install php packages
     osal_package_preinstall > /dev/null 2>&1
@@ -54,7 +59,7 @@ nopanel_module_php-fpm_add() {
     osal_service_enable $php_prefix-fpm > /dev/null 2>&1
     osal_service_start $php_prefix-fpm > /dev/null 2>&1
 
-
+    nplib_modules_set 'php-fpm' "$param_version" 'true'
 
     nopanel_command_return 'ok' "PHP (FPM) version $param_version added"
 }

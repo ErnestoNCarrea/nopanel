@@ -19,7 +19,7 @@ nopanel_module_php-fpm_install() {
 
     nplib_modules_set_installed 'php-fpm' 'true'
 
-    nopanel module php-fpm add
+    nopanel module php-fpm add --version default
     
     nopanel_command_return 'ok' 'PHP (FPM) module installed'
 }

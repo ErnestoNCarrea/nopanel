@@ -21,15 +21,11 @@ nopanel_init() {
     chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_LOG
 
     # Initialize missing configuration files to empty json
-    for FILE in nopanel.json modules.json users.json domains.json databases.json
+    for FILE in nopanel.json modules.json users.json web-domains.json mail-domains.json databases.json
     do
         [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' >> "$NOPANEL_ETC/$FILE"
         chmod 0660 "$NOPANEL_ETC/$FILE"
     done
-
-    osal_json_set "$NOPANEL_ETC/users.json" ".users += []"
-    osal_json_set "$NOPANEL_ETC/domains.json" ".domains += []"
-    osal_json_set "$NOPANEL_ETC/databases.json" ".databases += []"
 
     if [ "$OS_BASE" = 'rhel' ]; then
         osal_package_preinstall > /dev/null 2>&1

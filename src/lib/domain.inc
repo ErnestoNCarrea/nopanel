@@ -2,30 +2,35 @@
 
 # nplib_domains_set 'domain' 'key' 'value'
 nplib_domains_set() {
-    osal_json_set "$NOPANEL_ETC/domains.json" ".domains |= map((select(.name == \"$1\") | .$2 = \"$3\") // .)"
-}
-
-# nplib_domains_add 'domain'
-nplib_domains_add() {
-    osal_json_set "$NOPANEL_ETC/domains.json" ".domains += [{name: \"$1\"}]"
+    osal_json_set "$NOPANEL_ETC/domains.json" ".\"${1}\".\"${2}\" = \"$3\""
 }
 
 # nplib_domains_get 'domain' 'key'
 nplib_domains_get() {
-    osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.name == \"$1\") | .$2"
+    osal_json_get "$NOPANEL_ETC/domains.json" ".\"$1\" | .\"$2\""
 }
 
-# nplib_domains_get 'domain' 'key'
+# nplib_domains_list ['user']
+nplib_domains_list() {
+    if [[ "$1" ]]; then
+        osal_json_get "$NOPANEL_ETC/domains.json" ".[] | select(.user == \"$1\") | .name"
+    else
+        osal_json_get "$NOPANEL_ETC/domains.json" "keys[]"
+    fi
+}
+
+# nplib_domains_list_json ['user']
+nplib_domains_list_json() {
+    if [[ "$1" ]]; then
+        osal_json_get "$NOPANEL_ETC/domains.json" "with_entries(select(.value.user == \"$1\"))"
+    else
+        osal_json_get "$NOPANEL_ETC/domains.json" "."
+    fi
+}
+
+# nplib_domains_list 'domain' 'key'
 nplib_domains_exists() {
     [[ $(nplib_domains_get "$1" 'name') ]]
-}
-
-nplib_domain_list() {
-    osal_json_get "$NOPANEL_ETC/domains.json" ".domains[] | select(.user == \"$param_user\") | .name"
-}
-
-nplib_domain_list_json() {
-    osal_json_get "$NOPANEL_ETC/domains.json" "[.domains[] | select(.user == \"$param_user\")]"
 }
 
 nplib_domain_idn() {

@@ -7,13 +7,14 @@ nopanel_web_domain_rebuild() {
     fi
 
     source $NOPANEL_LIB/module.inc
+    source $NOPANEL_LIB/user.inc
     source $NOPANEL_LIB/domain.inc
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user "$param_user"
     else
         # Rebuild all users
-        for param_user in $(param_output_silent=1 nopanel user list); do
+        for param_user in $(nplib_users_list); do
             nopanel_web_domain_rebuild_user
         done
         unset param_user
@@ -22,14 +23,13 @@ nopanel_web_domain_rebuild() {
     nopanel_command_return 'ok' 'Domain configuration generated'
 }
 
-
 nopanel_web_domain_rebuild_user() {
     nopanel_command_echo " - Processing user $param_user..."
     if [[ "$param_domain" ]]; then
         nopanel_web_domain_rebuild_user_domain
     else
         # Rebuild all domaind
-        for param_domain in $(param_output_silent=1 nopanel web domain list); do
+        for param_domain in $(nplib_domains_list $param_user); do
             nopanel_web_domain_rebuild_user_domain
         done
         unset param_domain
@@ -38,12 +38,13 @@ nopanel_web_domain_rebuild_user() {
 
 nopanel_web_domain_rebuild_user_domain() {
     param_aliases=$(nplib_domains_get "$param_domain" 'aliases')
+    param_php=$(nplib_domains_get "$param_domain" 'php')
 
     local USER_HOME="$NOPANEL_HOME/$param_user"
     local DOMAIN_DOCROOT=$USER_HOME/web/$param_domain/public_html
     local domain_idn=$(nplib_domain_idn $param_domain)
     local domain_aliases_idn=$(nplib_domain_aliases_idn $param_aliases)
-    local USER_EMAIL=$(osal_json_get "$NOPANEL_ETC/users.json" ".users[] | select(.name == \"$param_user\") | .email")
+    local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
     [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
     WEB_LOGS=$(nplib_modules_get 'web' 'logs')
     WEB_SERVER=$(nplib_modules_get 'web' 'server')

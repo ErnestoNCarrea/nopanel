@@ -12,9 +12,9 @@ nplib_users_get() {
 
 # nplib_users_list
 nplib_users_list() {
-    osal_json_get "$NOPANEL_ETC/users.json" ".users[] | .name"
+    osal_json_get "$NOPANEL_ETC/users.json" "keys[]"
 }
 
 nplib_users_list_json() {
-    osal_json_get "$NOPANEL_ETC/users.json" "[.users[]]"
+    osal_json_get "$NOPANEL_ETC/users.json" "."
 }
