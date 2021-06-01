@@ -145,11 +145,11 @@ nopanel() {
         fi
 
         if [ "$cmd_type" = 'include' ]; then
-            source $cmd_file
+            nplib_require $cmd_file
             nopanel_$cmd_name $@
         elif [ "$cmd_type" = 'dir' ]; then
             # Found to dir level, but no file. Assume 'help' command
-            source "$NOPANEL_LIB/${cmd_file}/help"
+            nplib_require "$NOPANEL_LIB/${cmd_file}/help"
             cmd_name_help="${cmd_name}_help"
             nopanel_$cmd_name_help
         else

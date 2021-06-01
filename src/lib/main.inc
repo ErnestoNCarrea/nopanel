@@ -118,17 +118,33 @@ nplib_is_nopanel_admin() {
 }
 
 nplib_check_user() {
+
     if ! nplib_is_nopanel_admin; then
         # is regular user
         if [[ "$param_user" ]] && [ ! "$param_user" = "$USER" ]; then
             # can only use it's own username
             nplib_command_return 'error' "You are not allowed to become $param_user"
             exit 1
-        else
-            # Force --user
+        fi
+
+        # regular users can only be themselves
+        if [[ ! "$param_user" ]]; then
             param_user=$USER
         fi
-    
     fi
+}
 
+# check if a string contains another string
+# nplib_string_contains 'haystack' 'needle'
+nplib_string_contains() {
+    [[ ! "$1" ]] || [ ! -z "${1##*$2*}" ]
+}
+
+# source a lib if it hasn't been sourced yet
+# nplib_require 'mylib.inc'
+nplib_require() {
+    if nplib_string_contains "$nplib_required" "$1"; then
+        source $1
+        nplib_required="$nplib_required $1"
+    fi
 }
