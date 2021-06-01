@@ -1,0 +1,11 @@
+#########################################################################
+# noPanel sudoers file (https://docs.nopanel.cc)                        #
+# DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!                   #
+#########################################################################
+
+Defaults:%nopanel-admins !syslog
+Defaults:%nopanel-admins !requiretty
+Defaults:root !requiretty
+
+# sudo is limited to noPanel scripts
+%nopanel-admins   ALL=NOPASSWD:/usr/bin/nopanel

@@ -1,19 +1,19 @@
 #!/bin/bash
 
-nopanel_command_echo() {
+nplib_command_echo() {
     if [[ "$param_interactive" != "false" ]] && [[ ! "$param_output_silent" ]]; then
         echo "$@"
     fi
-    nopanel_command_log "$@"
+    nplib_command_log "$@"
 }
 
-nopanel_command_log() {
+nplib_command_log() {
     logger -- "$@"
 }
 
 # Outputs command result
-# nopanel_command_return 'ok|error' 'Message' 'additional data'
-nopanel_command_return() {
+# nplib_command_return 'ok|error' 'Message' 'additional data'
+nplib_command_return() {
     if [[ "$param_output_json" ]]; then
         if [[ "$3" ]]; then
             jq -n ".status=\"$1\"|.message=\"$2\"|.data=$3"
@@ -49,36 +49,36 @@ nopanel_command_return() {
 }
 
 # Backup config files (usually prior to install/remove)
-# nopanel_config_backup 'prefix' file1 file2 file3 ...
-nopanel_config_backup() {
+# nplib_config_backup 'prefix' file1 file2 file3 ...
+nplib_config_backup() {
     local dest=$NOPANEL_STATE/backup/
     local filename=${1}-$(date +%Y%m%d%H%M%S)
     shift
 
     if [ "$1" ]; then
         mkdir -p $dest
-        nopanel_command_log "tar -f $dest/${filename}.tar.gz $@"
+        nplib_command_log "tar -f $dest/${filename}.tar.gz $@"
         tar -zc --ignore-failed-read -f $dest/${filename}.tar.gz $@ > /dev/null 2>&1
     fi
 }
 
-nopanel_safe_rm() {
+nplib_safe_rm() {
     for file in "$@"; do
         if [[ $file =~ ^/etc/.*|^/var/.*|^/home/.* ]]; then
-            nopanel_command_log "rm -rf $file"
+            nplib_command_log "rm -rf $file"
             rm -rf $file
         fi
     done
 }
 
-nopanel_exit_on_failure() {
+nplib_exit_on_failure() {
     if [ $? -ne 0 ]; then
-        nopanel_command_return 'error' "$2"
+        nplib_command_return 'error' "$2"
     fi
 }
 
 # Run arbitrary CLI commands with dropped privileges
-nopanel_user_exec() {
+nplib_user_exec() {
     local user=$1
     shift
 
@@ -86,4 +86,49 @@ nopanel_user_exec() {
     user_groups=${user_groups//\ /,}
 
     setpriv --groups "$user_groups" --reuid "$user" --regid "$user" -- $@
+}
+
+# Install template files to destination
+nplib_install_template_files() {
+    local src=$1
+    local src_path=$(dirname $1)
+    local dst=$2
+
+    # Copy general template files
+    if [[ -e "$NOPANEL_DATA/$src_path" ]]; then
+        cp -rf $NOPANEL_DATA/$src $dst
+    fi
+
+    # Copy distro base-specific template files
+    if [[ -e "$NOPANEL_DATA/$OS_BASE/$src_path" ]]; then
+        cp -rf $NOPANEL_DATA/$OS_BASE/$src $dst
+    fi
+
+    # Copy distro-specific template files
+    if [[ -e "$NOPANEL_DATA/$OS_TYPE/$src_path" ]]; then
+        cp -rf $NOPANEL_DATA/$OS_TYPE/$src $dst
+    fi
+}
+
+nplib_is_nopanel_admin() {
+    local usr=$1
+    [[ "$usr" ]] || usr=$USER
+    [ "$usr" = 'root' ] && return 0
+    groups $usr | grep -q '\bnopanel-admins\b'
+}
+
+nplib_check_user() {
+    if ! nplib_is_nopanel_admin; then
+        # is regular user
+        if [[ "$param_user" ]] && [ ! "$param_user" = "$USER" ]; then
+            # can only use it's own username
+            nplib_command_return 'error' "You are not allowed to become $param_user"
+            exit 1
+        else
+            # Force --user
+            param_user=$USER
+        fi
+    
+    fi
+
 }

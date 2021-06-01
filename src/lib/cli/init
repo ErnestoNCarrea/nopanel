@@ -6,7 +6,7 @@ if [[ -z "$NOPANEL_VERSION" ]]; then
 fi
 
 nopanel_init() {
-    nopanel_command_echo "Initializing noPanel version $NOPANEL_VERSION"
+    nplib_command_echo "Initializing noPanel version $NOPANEL_VERSION"
 
     # Add a general group for normal users and admins
     if [ -z "$(grep ^nopanel-users: /etc/group)" ]; then
@@ -16,23 +16,29 @@ nopanel_init() {
         groupadd --system "nopanel-admins"
     fi
 
-    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG $NOPANEL_ETC/users $NOPANEL_ETC/domains
+    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
     chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
     chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_LOG
+    chmod g+rs $NOPANEL_ETC $NOPANEL_LOG
 
     # Initialize missing configuration files to empty json
     for FILE in nopanel.json modules.json users.json web-domains.json mail-domains.json databases.json
     do
-        [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' >> "$NOPANEL_ETC/$FILE"
-        chmod 0660 "$NOPANEL_ETC/$FILE"
+        [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' > "$NOPANEL_ETC/$FILE"
+        chmod 0660 $NOPANEL_ETC/$FILE
+        chown root:nopanel-admins $NOPANEL_ETC/$FILE
     done
 
+    nplib_command_echo " - Installing template files..."
+    nplib_install_template_files "etc/*" "/etc/"
+
     if [ "$OS_BASE" = 'rhel' ]; then
+        nplib_command_echo " - Enabling EPEL repository..."
         osal_package_preinstall > /dev/null 2>&1
         osal_package_install epel-release > /dev/null 2>&1
     fi
 
-    nopanel_command_return 'ok' 'noPanel ready'
+    nplib_command_return 'ok' 'noPanel ready'
 }
 
 # If this files is _not_ being sourced, act immediately

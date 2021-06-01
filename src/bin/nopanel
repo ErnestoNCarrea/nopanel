@@ -31,8 +31,8 @@ NOPANEL_HOME=/home
 
 [ "$NOPANEL_DEBUG" ] && OSAL_DEBUG=1
 
-source $NOPANEL_LIB/main.inc
 source $NOPANEL_LIB/osal.inc
+source $NOPANEL_LIB/main.inc
 
 nopanel() {
     if [[ -z "$@" ]]; then
@@ -125,6 +125,8 @@ nopanel() {
 
     # Trim leading space
     [ "$params" ] && params="${params:1}"
+
+    nplib_check_user
 
     if [ $cmd_file ]; then
         if [ "$NOPANEL_DEBUG" ]; then
