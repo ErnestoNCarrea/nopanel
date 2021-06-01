@@ -102,7 +102,7 @@ sed_escape() {
     sed -e 's/[]\/$*.^[]/\\&/g'
 }
 
-# Writes a value to a json file. Value is in jq format.
+# write a value to a json file (ealue is in jq format)
 # osal_json_set 'file' 'value'
 osal_json_set() {
     local tmpfile=$(mktemp)
@@ -110,7 +110,7 @@ osal_json_set() {
     jq "$2" "$1" > "$tmpfile" && (chown --reference=$1 $tmpfile; chmod --reference=$1 $tmpfile; mv "$tmpfile" "$1")
 }
 
-# Writes a value to a json file. Value is in jq format.
+# read a value from a json file (value is in jq format)
 # osal_json_get 'file' 'value'
 osal_json_get() {
     jq -r -c "$2" "$1"
