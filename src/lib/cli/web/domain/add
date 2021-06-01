@@ -26,8 +26,8 @@ nopanel_web_domain_add() {
     nplib_domains_set "$param_domain" 'name' "$param_domain"
     nplib_domains_set "$param_domain" 'user' "$param_user"
 
-    # Build configuration for domain
-    nopanel web domain mod
-
-    nplib_command_output 'ok' 'Domain added'
+    # Call mod (-> commit (-> reload))
+    if nopanel web domain mod; then
+        nplib_command_output 'ok' 'Web domain created'
+    fi
 }

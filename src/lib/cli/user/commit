@@ -80,6 +80,8 @@ nopanel_user_commit() {
         chmod 0640 $USER_HOME/nopanel/$FILE
         chown $param_user:nopanel-admins $USER_HOME/nopanel/$FILE
     done
+
+    nplib_command_output 'ok' 'User configuration applied'
 }
 
 nopanel_user_commit_create_owned_folder() {

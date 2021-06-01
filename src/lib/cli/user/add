@@ -23,8 +23,8 @@ nopanel_user_add() {
     # Set defaults
     [[ "$param_shell" ]] || param_shell='/bin/bash'
 
-    # Call mod -> commit
-    nopanel user mod
-
-    nplib_command_output 'ok' 'User added'
+    # Call mod (-> commit)
+    if nopanel user mod; then
+        nplib_command_output 'ok' 'User created'
+    fi
 }

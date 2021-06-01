@@ -6,6 +6,7 @@ nopanel_web_domain_commit() {
         return
     fi
 
+    nplib_auto_elevate
     nplib_require $NOPANEL_LIB/module.inc
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
@@ -20,7 +21,7 @@ nopanel_web_domain_commit() {
         unset param_user
     fi
 
-    nplib_command_output 'ok' 'Domain configuration generated'
+    nplib_command_output 'ok' 'Web domain configuration applied'
 }
 
 nopanel_web_domain_rebuild_user() {
