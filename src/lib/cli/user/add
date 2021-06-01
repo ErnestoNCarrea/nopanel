@@ -15,83 +15,14 @@ nopanel_user_add() {
         return
     fi
 
-    source $NOPANEL_LIB/user.inc
-    
-    local useradd_params="--groups nopanel-users "
-    local USER_HOME="$NOPANEL_HOME/$param_user"
-
-    # Default shell
-    [[ "$param_shell" ]] || param_shell='nologin'
-    param_shell=$(grep -w "$param_shell" /etc/shells | head -n1)
-    [[ "$param_shell" ]] || param_shell='/usr/sbin/nologin'
-
-    if [[ -d "$USER_HOME" ]]; then
-        if [[ "$param_force" ]]; then
-            useradd_params="$useradd_params --no-create-home"     # Do not create home directory
-            nplib_command_echo 'Not creating home directory because it already exists'
-        else
-            nplib_command_return 'error' 'The user home directory already exists'
-            return
-        fi
-    else
-        # Create user home directory
-        useradd_params="$useradd_params --create-home --home-dir $USER_HOME"
-    fi
-
-    # Add user and set password
-    if id -u "$param_user" &>/dev/null; then
-        if [[ ! "$param_force" ]]; then
-            nplib_command_return 'error' 'The user already exists'
-            return
-        fi
-        nplib_command_echo 'Not creating user because it already exists'
-    else
-        /usr/sbin/useradd $useradd_params $param_user > /dev/null 2>&1
-    fi
-    /usr/sbin/usermod --shell "$param_shell" "$param_user" > /dev/null 2>&1
-    /usr/sbin/usermod -d "$USER_HOME" "$param_user" > /dev/null 2>&1
-
-    echo "$param_user:$param_password" | /usr/sbin/chpasswd
-
-    # Add membership to nopanel-users group to non-admin users
-    if [ "$param_user" = "admin" ]; then
-        usermod -a -G "nopanel-admins" "$param_user" > /dev/null 2>&1
-        setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
-    else
-        usermod -a -G "nopanel-users" "$param_user" > /dev/null 2>&1
-        setfacl -m "u:$param_user:r-x" "$USER_HOME" > /dev/null 2>&1
-    fi
-    setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
-
-    # Building directory tree
-    mkdir -p $USER_HOME/conf
-    local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
-    chmod a+x $USER_HOME
-    chattr +i $USER_HOME/conf > /dev/null 2>&1
-
-    # Create default writeable folders
-    mkdir -p $USER_HOME/.config \
-        $USER_HOME/.cache \
-        $USER_HOME/.local \
-        $USER_HOME/.composer \
-        $USER_HOME/.ssh \
-        $USER_HOME/.npm
-
-    chown $param_user:$param_user \
-        $USER_HOME/.config \
-        $USER_HOME/.cache \
-        $USER_HOME/.local \
-        $USER_HOME/.composer \
-        $USER_HOME/.ssh \
-        $USER_HOME/.npm
-
-    [[ "$param_admin" ]] && param_admin='yes'
-
+    # Create user
     nplib_users_set "$param_user" 'name' "$param_user"
-    nplib_users_set "$param_user" 'shell' "$param_shell"
-    nplib_users_set "$param_user" 'email' "$param_email"
-    nplib_users_set "$param_user" 'admin' "$param_admin"
-    nplib_users_set "$param_user" 'fullname' "$param_fullname"
+
+    # Set defaults
+    [[ "$param_shell" ]] || param_shell='/bin/bash'
+
+    # Call mod -> commit
+    nopanel user mod
 
     nplib_command_return 'ok' 'User added'
 }

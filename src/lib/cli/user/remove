@@ -6,25 +6,32 @@ nopanel_user_remove() {
         return
     fi
 
-    if [[ ! "$param_force" ]]; then
-        nplib_command_return 'error' 'Refusing to remove user unless --force is used'
-        return
-    fi
-
     if [[ ! "$param_user" ]]; then
         nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
 
-    local USER_JSON=$NOPANEL_ETC/users/${param_user}.json
-    chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1
-    if [[ ! "$param_no_backup" ]]; then
-        nplib_config_backup "user-remove-$param_user" $NOPANEL_HOME/$param_user $USER_JSON
+    if [[ ! "$param_force" ]]; then
+        nplib_command_return 'error' 'Refusing to remove user unless --force is used'
+        return
     fi
-    /usr/sbin/userdel $param_user > /dev/null 2>&1
-    nplib_safe_rm "$NOPANEL_HOME/$param_user" $USER_JSON
 
-    osal_json_set "$NOPANEL_ETC/nopanel.json" "del(.users[] | select(.name == \"$param_user\"))"
+    nplib_require $NOPANEL_LIB/user.inc
+
+    chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1
+
+    /usr/sbin/userdel $param_user > /dev/null 2>&1
+
+    if [[ "$param_delete" ]]; then
+        if [[ ! "$param_no_backup" ]]; then
+            nplib_command_echo ' - Creating backup (this might take a while)'
+            nplib_config_backup "user-remove-$param_user" $NOPANEL_HOME/$param_user $USER_JSON
+        fi
+        nplib_command_echo ' - Deleting user data (this might take a while)'
+        nplib_safe_rm "$NOPANEL_HOME/$param_user" $USER_JSON
+    fi
+
+    nplib_users_delete $param_user
 
     nplib_command_return 'ok' 'User removed'
 }

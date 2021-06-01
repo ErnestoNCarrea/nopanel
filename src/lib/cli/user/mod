@@ -10,64 +10,25 @@ nopanel_user_mod() {
         nplib_command_return 'error' 'Username not specified (--user)'
         return
     fi
-    
-    USER_HOME="$NOPANEL_HOME/$param_user"
-    USER_JSON=$NOPANEL_ETC/users/${param_user}.json
-    osal_json_set "$USER_JSON" ".username = \"$param_user\""
 
-    # Default shell
-    if [[ "$param_shell" ]]; then
-        param_shell=$(grep -w "$param_shell" /etc/shells | head -n1)
-        if [[ ! "$param_shell" ]]; then
-            nplib_command_return 'error' 'Unrecognized shell'
-            return
-        fi
-        nplib_command_echo ' - Setting shell'
-        /usr/sbin/usermod --shell "$param_shell" "$param_user" > /dev/null 2>&1
-        osal_json_set "$USER_JSON" ".shell = \"$param_shell\""
-    fi
+    nplib_users_exists
+
+    # anything not falsey is 'yes'
+    [[ "$param_admin" ]] && param_admin='yes'
     
+    [[ "$param_fullname" ]] &&nplib_users_set "$param_user" 'fullname' "$param_fullname"
+    [[ "$param_email" ]] &&nplib_users_set "$param_user" 'email' "$param_email"
+    [[ "$param_shell" ]] && nplib_users_set "$param_user" 'shell' "$param_shell"
+    [[ "$param_admin" ]] &&nplib_users_set "$param_user" 'admin' "$param_admin"
+
+    # Commit changes to system
+    nopanel user commit
+    
+    # change password if specified
     if [[ "$param_password" ]]; then
         nplib_command_echo ' - Setting password'
         echo "$param_user:$param_password" | /usr/sbin/chpasswd
     fi
-
-    if [[ "$param_email" ]]; then
-        nplib_command_echo ' - Setting e-mail address'
-        osal_json_set "$USER_JSON" ".email = \"$param_email\""
-    fi
-
-    nplib_command_echo ' - Setting up home directory and permissions'
-    # Add membership to nopanel-users group to non-admin users
-    if [ "$param_user" = "admin" ]; then
-        setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
-    else
-        usermod -a -G "nopanel-users" "$param_user" > /dev/null 2>&1
-        setfacl -m "u:$param_user:r-x" "$USER_HOME" > /dev/null 2>&1
-    fi
-    setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
-
-    # Building directory tree
-    mkdir -p $USER_HOME/conf
-    mkdir -p $NOPANEL_ETC/users
-    chmod a+x $USER_HOME
-    chattr +i $USER_HOME/conf > /dev/null 2>&1
-
-    # Create default writeable folders
-    mkdir -p $USER_HOME/.config \
-        $USER_HOME/.cache \
-        $USER_HOME/.local \
-        $USER_HOME/.composer \
-        $USER_HOME/.ssh \
-        $USER_HOME/.npm
-
-    chown $param_user:$param_user \
-        $USER_HOME/.config \
-        $USER_HOME/.cache \
-        $USER_HOME/.local \
-        $USER_HOME/.composer \
-        $USER_HOME/.ssh \
-        $USER_HOME/.npm
 
     nplib_command_return 'ok' 'User changed'
 }

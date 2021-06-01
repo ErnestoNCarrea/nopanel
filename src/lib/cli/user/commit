@@ -1,0 +1,68 @@
+#!/bin/bash
+
+nopanel_user_commit() {
+    if [[ "$param_help" ]]; then
+        nopanel user help
+        return
+    fi
+
+    if [[ ! "$param_user" ]]; then
+        nplib_command_return 'error' 'Username not specified (--user)'
+        return
+    fi
+
+    nplib_require $NOPANEL_LIB/user.inc
+    
+    USER_HOME="$NOPANEL_HOME/$param_user"
+    
+    local USER_FULLNAME=$(nplib_users_set "$param_user" 'fullname')
+    local USER_EMAIL=$(nplib_users_set "$param_user" 'email')
+    local USER_SHELL=$(nplib_users_set "$param_user" 'shell')
+    local USER_ADMIN=$(nplib_users_set "$param_user" 'admin')
+
+    # Default shell
+    if [[ "$USER_SHELL" ]]; then
+        USER_SHELL=$(grep -w "$USER_SHELL" /etc/shells | head -n1)
+        if [[ ! "$USER_SHELL" ]]; then
+            nplib_command_return 'error' 'Unrecognized shell'
+            return 1
+        fi
+        nplib_command_echo ' - Setting shell'
+        /usr/sbin/usermod --shell "$USER_SHELL" "$param_user" > /dev/null 2>&1
+    fi
+
+    nplib_command_echo ' - Setting up home directory and permissions'
+    # Add membership to nopanel-users group to non-admin users
+    if [ "$param_user" = "admin" ]; then
+        setfacl -m "g:admin:r-x" "$USER_HOME" > /dev/null 2>&1
+    else
+        usermod -a -G "nopanel-users" "$param_user" > /dev/null 2>&1
+        setfacl -m "u:$param_user:r-x" "$USER_HOME" > /dev/null 2>&1
+    fi
+    setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
+
+    # Create default writeable folders
+    nopanel_user_commit_create_owned_folder \
+        $USER_HOME/nopanel \
+        $USER_HOME/.config \
+        $USER_HOME/.cache \
+        $USER_HOME/.local \
+        $USER_HOME/.composer \
+        $USER_HOME/.ssh \
+        $USER_HOME/.npm
+
+    nplib_command_echo ' - Creating user noPanel environment'
+    for FILE in nopanel.json domains.json databases.json
+    do
+        [[ -f "$USER_HOME/nopanel/$FILE" ]] || echo '{}' > "$USER_HOME/nopanel/$FILE"
+        chmod 0660 $USER_HOME/nopanel/$FILE
+        chown $param_user:$param_user $USER_HOME/nopanel/$FILE
+    done
+}
+
+nopanel_user_commit_create_owned_folder() {
+    if [[ ! -d $1 ]]; then
+        mkdir -p $1
+        chown $param_user:$param_user $1
+    fi
+}
