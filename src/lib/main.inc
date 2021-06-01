@@ -3,7 +3,7 @@
 # © Ernesto N. Carrea / https://www.nopanel.cc
 
 nplib_command_echo() {
-    if [[ "$param_interactive" != "false" ]] && [[ ! "$param_output_silent" ]]; then
+    if [[ "$param_interactive" != "false" ]] && [ ! "$param_output" ]; then
         echo "$@"
     fi
     nplib_command_log "$@"
@@ -14,15 +14,15 @@ nplib_command_log() {
 }
 
 # Outputs command result
-# nplib_command_return 'ok|error' 'Message' 'additional data'
+# nplib_command_return 'ok|error' 'Message' 'additional data' 'jq table_format'
 nplib_command_return() {
-    if [[ "$param_output_json" ]]; then
+    if [ "$param_output" = 'json' ]; then
         if [[ "$3" ]]; then
             jq -n ".status=\"$1\"|.message=\"$2\"|.data=$3"
         else
             jq -n ".status=\"$1\"|.message=\"$2\""
         fi
-    elif [[ "$param_output_silent" ]]; then
+    elif [ "$param_output" = 'plain' ]; then
         # Only data
         if [[ "$3" ]]; then
             echo $3

@@ -9,7 +9,7 @@ nopanel_module_php-fpm_info() {
     nplib_command_echo "Supported PHP versions   : $PHP_SUPPORTED_VERSIONS"
     nplib_command_echo "Default PHP version      : $PHP_DEFAULT_VERSION"
 
-    [[ "$param_output_json" ]] && local extra="{supportedVersion: \"$PHP_SUPPORTED_VERSIONS\", defaultVersion: \"$PHP_DEFAULT_VERSION\"}"
+    [ "$param_output" = 'json' ] && local extra="{supportedVersion: \"$PHP_SUPPORTED_VERSIONS\", defaultVersion: \"$PHP_DEFAULT_VERSION\"}"
 
     nplib_command_return 'ok' 'PHP (FPM) module information' "$extra"
 }

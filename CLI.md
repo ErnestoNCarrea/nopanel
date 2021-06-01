@@ -2,7 +2,7 @@
 
 ### noPanel command line interface
 
-nopanel [--output-json|--output-text|--output-silent]
+nopanel [--output=json|plain]
 
 ver
 init

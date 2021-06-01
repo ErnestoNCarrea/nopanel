@@ -13,7 +13,7 @@ nopanel_web_domain_list() {
 
     nplib_require $NOPANEL_LIB/domain.inc
 
-    if [[ "$param_output_json" ]]; then
+    if [ "$param_output" = 'json' ]; then
         #local domainlist=
         nplib_command_return 'ok' 'Domain list' $(nplib_domains_list_json "$param_user")
     else

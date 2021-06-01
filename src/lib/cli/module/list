@@ -3,7 +3,7 @@
 nopanel_module_list() {
     nplib_require $NOPANEL_LIB/module.inc
      
-    if [[ "$param_output_json" ]]; then
+    if [ "$param_output" = 'json' ]; then
         extra=$(nplib_modules_list_json)
     else
         extra=$(nplib_modules_list)

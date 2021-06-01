@@ -8,7 +8,7 @@ nopanel_user_list() {
 
     nplib_require $NOPANEL_LIB/user.inc
 
-    if [[ "$param_output_json" ]]; then
+    if [ "$param_output" = 'json' ]; then
         local userlist=$(nplib_users_list_json)
         nplib_command_return 'ok' 'User list' "$userlist"
     else
