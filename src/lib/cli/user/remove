@@ -18,20 +18,11 @@ nopanel_user_remove() {
 
     nplib_require $NOPANEL_LIB/user.inc
 
-    chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1
-
-    /usr/sbin/userdel $param_user > /dev/null 2>&1
-
-    if [[ "$param_delete" ]]; then
-        if [[ ! "$param_no_backup" ]]; then
-            nplib_command_echo ' - Creating backup (this might take a while)'
-            nplib_config_backup "user-remove-$param_user" $NOPANEL_HOME/$param_user $USER_JSON
-        fi
-        nplib_command_echo ' - Deleting user data (this might take a while)'
-        nplib_safe_rm "$NOPANEL_HOME/$param_user" $USER_JSON
-    fi
-
-    nplib_users_delete $param_user
+    nplib_users_set "$param_user" 'delete' 'yes'
 
     nplib_command_output 'ok' 'User removed'
+
+    if [[ "$param_commit" ]]; then
+        nopanel user commit
+    fi
 }

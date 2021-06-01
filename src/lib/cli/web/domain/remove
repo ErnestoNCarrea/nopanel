@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nopanel_web_domain_mod() {
+nopanel_web_domain_remove() {
     if [[ "$param_help" ]]; then
         nopanel web help
         return
@@ -23,21 +23,13 @@ nopanel_web_domain_mod() {
     fi
 
     # Update noPanel DB
-    nplib_command_echo "Modifying $param_domain..."
+    nplib_command_echo "Deleting $param_domain..."
 
-    nplib_domains_set "$param_domain" 'web' 'true'
-    [[ $param_aliases ]] && nplib_domains_set "$param_domain" 'web_aliases' "$param_aliases"
+    nplib_domains_set "$param_domain" 'web' 'delete'
 
-
-    if nplib_is_false $param_php; then
-        nplib_domains_set "$param_domain" 'web_php' 'false'
-    elif [[ $param_php ]]; then
-        nplib_domains_set "$param_domain" 'web_php' "$param_php"
-    fi
+    nplib_command_output 'ok' 'Web domain deleted'
 
     if [[ "$param_commit" ]]; then
         nopanel web domain commit
     fi
-
-    nplib_command_output 'ok' 'Web domain saved'
 }

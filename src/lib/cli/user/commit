@@ -15,11 +15,23 @@ nopanel_user_commit() {
     nplib_require $NOPANEL_LIB/user.inc
     
     USER_HOME="$NOPANEL_HOME/$param_user"
-    
-    local USER_FULLNAME=$(nplib_users_set "$param_user" 'fullname')
-    local USER_EMAIL=$(nplib_users_set "$param_user" 'email')
-    local USER_SHELL=$(nplib_users_set "$param_user" 'shell')
-    local USER_ADMIN=$(nplib_users_set "$param_user" 'admin')
+
+    local USER_DELETED=$(nplib_users_get "$param_user" 'delete')
+
+    if nplib_is_true $USER_DELETED; then
+        nopanel_user_commit_delete
+    else
+        nopanel_user_commit_update
+    fi
+
+    nplib_command_output 'ok' 'User configuration applied'
+}
+
+nopanel_user_commit_update() {
+    local USER_FULLNAME=$(nplib_users_get "$param_user" 'fullname')
+    local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
+    local USER_SHELL=$(nplib_users_get "$param_user" 'shell')
+    local USER_ADMIN=$(nplib_users_get "$param_user" 'admin')
     local useradd_params="--groups nopanel-users "
 
     # Add user and set password
@@ -80,8 +92,24 @@ nopanel_user_commit() {
         chmod 0640 $USER_HOME/nopanel/$FILE
         chown $param_user:nopanel-admins $USER_HOME/nopanel/$FILE
     done
+}
 
-    nplib_command_output 'ok' 'User configuration applied'
+nopanel_user_commit_delete() {
+    chattr -i "$NOPANEL_HOME/$param_user/conf" > /dev/null 2>&1
+
+    /usr/sbin/userdel $param_user > /dev/null 2>&1
+
+    if [[ "$param_delete" ]]; then
+        if [[ ! "$param_no_backup" ]]; then
+            nplib_command_echo ' - Creating backup (this might take a while)'
+            nplib_config_backup "user-remove-$param_user" $NOPANEL_HOME/$param_user $USER_JSON
+        fi
+        nplib_command_echo ' - Deleting user data (this might take a while)'
+        nplib_safe_rm "$NOPANEL_HOME/$param_user" $USER_JSON
+    fi
+
+    nplib_users_delete $param_user
+
 }
 
 nopanel_user_commit_create_owned_folder() {

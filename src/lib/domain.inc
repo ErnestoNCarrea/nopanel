@@ -28,6 +28,11 @@ nplib_domains_list_json() {
     fi
 }
 
+# nplib_domains_delete 'domain'
+nplib_domains_delete() {
+    osal_json_set "$NOPANEL_HOME/$param_user/nopanel/domains.json" "del(.\"$1\")"
+}
+
 # nplib_domains_list 'domain' 'key'
 nplib_domains_exists() {
     [[ $(nplib_domains_get "$1" 'name') ]]

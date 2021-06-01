@@ -22,6 +22,10 @@ nopanel_web_domain_commit() {
     fi
 
     nplib_command_output 'ok' 'Web domain configuration applied'
+
+    if [[ "$param_reload" ]]; then
+        nopanel module apache reload
+    fi
 }
 
 nopanel_web_domain_rebuild_user() {
@@ -39,7 +43,11 @@ nopanel_web_domain_rebuild_user() {
 
 nopanel_web_domain_rebuild_user_domain() {
     local DOMAIN_WEB=$(nplib_domains_get "$param_domain" 'web')
-    if ! nplib_is_true $DOMAIN_WEB; then
+
+    if [ "$DOMAIN_WEB" = 'delete' ]; then
+        nopanel_web_domain_delete_user_domain
+        return
+    elif ! nplib_is_true $DOMAIN_WEB; then
         return
     fi
     nplib_command_echo "  - Configuring web server for domain $param_domain..."
@@ -98,6 +106,15 @@ nopanel_web_domain_rebuild_user_domain() {
 
     # set a link to the apache config in the user directory
     # ln -s -f $APACHE_CONF_FILE "$USER_HOME/nopanel/web/apache-$param_domain.conf"
+}
+
+nopanel_web_domain_delete_user_domain() {
+    nplib_command_echo "  - Deleting web server configuration for domain $param_domain..."
+    local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
+    local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
+    nplib_safe_rm $WEB_LOGS/domains/$param_domain $APACHE_CONF_FILE
+
+    nplib_domains_set "$param_domain" 'web' 'no'
 }
 
 # copy a file to a destination, replacing template vars
