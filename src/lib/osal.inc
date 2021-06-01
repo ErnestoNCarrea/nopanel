@@ -113,7 +113,7 @@ osal_json_set() {
 # read a value from a json file (value is in jq format)
 # osal_json_get 'file' 'value'
 osal_json_get() {
-    jq -r -c "$2" "$1"
+    jq --raw-output --compact-output "$2" "$1"
 }
 
 # Writes a value to a key-value file.
