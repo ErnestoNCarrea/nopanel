@@ -7,18 +7,18 @@ nopanel_web_domain_mod() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nplib_command_return 'error' 'Username not specified (--user)'
+        nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
     if [[ ! "$param_domain" ]]; then
-        nplib_command_return 'error' 'Domain name not specified'
+        nplib_command_output 'error' 'Domain name not specified'
         return
     fi
 
     nplib_require $NOPANEL_LIB/domain.inc
 
     if ! nplib_domains_exists "$param_domain"; then
-        nplib_command_return 'error' 'Domain does not exist'
+        nplib_command_output 'error' 'Domain does not exist'
         return
     fi
 
@@ -34,5 +34,5 @@ nopanel_web_domain_mod() {
     # Resload web server config
     nopanel module apache reload
 
-    nplib_command_return 'ok' 'Domain modified'
+    nplib_command_output 'ok' 'Domain modified'
 }

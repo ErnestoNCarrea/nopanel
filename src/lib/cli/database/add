@@ -8,11 +8,11 @@ nopanel_database_add() {
 
 
     if [[ ! "$param_user" ]]; then
-        nplib_command_return 'error' 'Username not specified (--user)'
+        nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
     if [[ ! "$param_db" ]]; then
-        nplib_command_return 'error' 'Database name not specified (--db)'
+        nplib_command_output 'error' 'Database name not specified (--db)'
         return
     fi
 
@@ -31,5 +31,5 @@ nopanel_database_add() {
     # Create database
     nopanel database rebuild
 
-    nplib_command_return 'ok' 'Database created'
+    nplib_command_output 'ok' 'Database created'
 }

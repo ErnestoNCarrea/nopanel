@@ -20,7 +20,7 @@ nopanel_web_domain_rebuild() {
         unset param_user
     fi
 
-    nplib_command_return 'ok' 'Domain configuration generated'
+    nplib_command_output 'ok' 'Domain configuration generated'
 }
 
 nopanel_web_domain_rebuild_user() {

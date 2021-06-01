@@ -47,7 +47,7 @@ nopanel_init() {
         osal_package_install epel-release > /dev/null 2>&1
     fi
 
-    nplib_command_return 'ok' 'noPanel ready'
+    nplib_command_output 'ok' 'noPanel ready'
 }
 
 # If this files is _not_ being sourced, act immediately

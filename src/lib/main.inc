@@ -14,8 +14,8 @@ nplib_command_log() {
 }
 
 # Outputs command result
-# nplib_command_return 'ok|error' 'Message' 'additional data' 'jq table_format'
-nplib_command_return() {
+# nplib_command_output 'ok|error' 'Message' 'additional data' 'jq table_format'
+nplib_command_output() {
     if [ "$param_output" = 'json' ]; then
         if [[ "$3" ]]; then
             jq -n ".status=\"$1\"|.message=\"$2\"|.data=$3"
@@ -75,7 +75,7 @@ nplib_safe_rm() {
 
 nplib_exit_on_failure() {
     if [ $? -ne 0 ]; then
-        nplib_command_return 'error' "$2"
+        nplib_command_output 'error' "$2"
     fi
 }
 
@@ -125,7 +125,7 @@ nplib_check_user() {
         # is regular user
         if [[ "$param_user" ]] && [ ! "$param_user" = "$USER" ]; then
             # can only use it's own username
-            nplib_command_return 'error' "You are not allowed to become $param_user"
+            nplib_command_output 'error' "You are not allowed to become $param_user"
             exit 1
         fi
 

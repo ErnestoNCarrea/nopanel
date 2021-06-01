@@ -7,7 +7,7 @@ nopanel_user_commit() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nplib_command_return 'error' 'Username not specified (--user)'
+        nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
 
@@ -24,7 +24,7 @@ nopanel_user_commit() {
     if [[ "$USER_SHELL" ]]; then
         USER_SHELL=$(grep -w "$USER_SHELL" /etc/shells | head -n1)
         if [[ ! "$USER_SHELL" ]]; then
-            nplib_command_return 'error' 'Unrecognized shell'
+            nplib_command_output 'error' 'Unrecognized shell'
             return 1
         fi
         nplib_command_echo ' - Setting shell'

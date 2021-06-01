@@ -7,11 +7,11 @@ nopanel_user_add() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nplib_command_return 'error' 'Username not specified (--user)'
+        nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
     if [[ ! "$param_password" ]]; then
-        nplib_command_return 'error' 'User password not specified (--password)'
+        nplib_command_output 'error' 'User password not specified (--password)'
         return
     fi
 
@@ -24,5 +24,5 @@ nopanel_user_add() {
     # Call mod -> commit
     nopanel user mod
 
-    nplib_command_return 'ok' 'User added'
+    nplib_command_output 'ok' 'User added'
 }

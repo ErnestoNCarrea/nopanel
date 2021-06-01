@@ -3,7 +3,7 @@
 nopanel_module_mariadb_wipe() {
     nplib_elevate
     if [[ ! "$param_force" ]]; then
-        nplib_command_return 'error' 'Refusing to wipe MariaDB unless --force is used'
+        nplib_command_output 'error' 'Refusing to wipe MariaDB unless --force is used'
         return
     fi
 
@@ -21,5 +21,5 @@ nopanel_module_mariadb_wipe() {
     osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.installed = \"false\" | .mariadb.serviceName = \"\"" 
     osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.host = \"localhost\" | .mariadb.port = \"\" | .mariadb.user = \"\" | .mariadb.password = \"\""
         
-    nplib_command_return 'ok' 'MariaDB module removed'
+    nplib_command_output 'ok' 'MariaDB module removed'
 }

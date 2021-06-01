@@ -6,5 +6,5 @@ nopanel_module_apache_reload() {
 
     apachectl -k graceful
         
-    nplib_command_return 'ok' 'Apache config reloaded'
+    nplib_command_output 'ok' 'Apache config reloaded'
 }

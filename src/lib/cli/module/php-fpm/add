@@ -6,11 +6,11 @@ nopanel_module_php-fpm_add() {
     nplib_require $NOPANEL_LIB/php.inc
 
     if ! nplib_modules_get_installed 'php-fpm'; then
-        nplib_command_return 'error' 'PHP (FPM) module not installed'
+        nplib_command_output 'error' 'PHP (FPM) module not installed'
         return
     fi
     if [[ ! "$param_version" ]]; then
-        nplib_command_return 'error' 'PHP version not specified (--version)'
+        nplib_command_output 'error' 'PHP version not specified (--version)'
         return
     fi
 
@@ -20,7 +20,7 @@ nopanel_module_php-fpm_add() {
 
     # Verify php version format
     if [[ ! "$param_version" =~ ^[0-9]\.[0-9]+ ]]; then
-        nplib_command_return 'error' 'The PHP (FPM) version is invalid'
+        nplib_command_output 'error' 'The PHP (FPM) version is invalid'
         return
     fi
 
@@ -33,7 +33,7 @@ nopanel_module_php-fpm_add() {
         fi
     done
     if [[ ! "$php_version" ]]; then
-        nplib_command_return 'error' "PHP (FPM) version $param_version is not supported"
+        nplib_command_output 'error' "PHP (FPM) version $param_version is not supported"
         return
     fi
 
@@ -62,5 +62,5 @@ nopanel_module_php-fpm_add() {
 
     nplib_modules_set 'php-fpm' "$param_version" 'true'
 
-    nplib_command_return 'ok' "PHP (FPM) version $param_version added"
+    nplib_command_output 'ok' "PHP (FPM) version $param_version added"
 }

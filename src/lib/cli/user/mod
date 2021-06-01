@@ -7,7 +7,7 @@ nopanel_user_mod() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nplib_command_return 'error' 'Username not specified (--user)'
+        nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
 
@@ -30,5 +30,5 @@ nopanel_user_mod() {
         echo "$param_user:$param_password" | /usr/sbin/chpasswd
     fi
 
-    nplib_command_return 'ok' 'User changed'
+    nplib_command_output 'ok' 'User changed'
 }

@@ -7,7 +7,7 @@ nopanel_database_list() {
     fi
 
     if [[ ! "$param_user" ]]; then
-        nplib_command_return 'error' 'Username not specified (--user)'
+        nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
 
@@ -15,10 +15,10 @@ nopanel_database_list() {
 
     if [ "$param_output" = 'json' ]; then
         local dblist=$(nplib_databases_list_json)
-        nplib_command_return 'ok' 'Database list' "$dblist"
+        nplib_command_output 'ok' 'Database list' "$dblist"
     else
         local dblist=$(nplib_databases_list)
-        nplib_command_return 'ok' 'Database list' "$dblist"
+        nplib_command_output 'ok' 'Database list' "$dblist"
     fi
 
 }

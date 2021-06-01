@@ -11,7 +11,7 @@ nopanel_module_php-fpm_info() {
 
     [ "$param_output" = 'json' ] && local extra="{supportedVersion: \"$PHP_SUPPORTED_VERSIONS\", defaultVersion: \"$PHP_DEFAULT_VERSION\"}"
 
-    nplib_command_return 'ok' 'PHP (FPM) module information' "$extra"
+    nplib_command_output 'ok' 'PHP (FPM) module information' "$extra"
 }
 
 # If this files is _not_ being sourced, act immediately

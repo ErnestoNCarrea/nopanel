@@ -22,5 +22,5 @@ nopanel_module_php-fpm_install() {
 
     nopanel module php-fpm add --version default
     
-    nplib_command_return 'ok' 'PHP (FPM) module installed'
+    nplib_command_output 'ok' 'PHP (FPM) module installed'
 }

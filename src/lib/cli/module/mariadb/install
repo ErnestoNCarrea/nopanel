@@ -95,5 +95,5 @@ EOL
     nplib_modules_set 'mariadb' 'port' '3306'
     [[ "mariadb_root_password" ]] && nplib_modules_set 'mariadb' 'password' "$mariadb_root_password"
         
-    nplib_command_return 'ok' 'MariaDB module installed'
+    nplib_command_output 'ok' 'MariaDB module installed'
 }

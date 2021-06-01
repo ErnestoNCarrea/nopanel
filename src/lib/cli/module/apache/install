@@ -53,5 +53,5 @@ nopanel_module_apache_install() {
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
     osal_service_start $OSAL_SERVICE_APACHE > /dev/null 2>&1
         
-    nplib_command_return 'ok' 'Apache module installed'
+    nplib_command_output 'ok' 'Apache module installed'
 }
