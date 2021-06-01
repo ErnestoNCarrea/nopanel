@@ -11,7 +11,7 @@ nopanel_web_domain_list() {
         return
     fi
 
-    source $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/domain.inc
 
     if [[ "$param_output_json" ]]; then
         #local domainlist=

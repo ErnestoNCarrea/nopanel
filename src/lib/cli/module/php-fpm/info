@@ -1,8 +1,8 @@
 #!/bin/bash
 
 nopanel_module_php-fpm_info() {
-    source $NOPANEL_LIB/module.inc
-    source $NOPANEL_LIB/php.inc
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/php.inc
 
     nplib_command_echo "noPanel PHP (FPM) module information"
 

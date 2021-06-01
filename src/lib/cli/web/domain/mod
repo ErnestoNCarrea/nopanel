@@ -15,7 +15,7 @@ nopanel_web_domain_mod() {
         return
     fi
 
-    source $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/domain.inc
 
     if ! nplib_domains_exists "$param_domain"; then
         nplib_command_return 'error' 'Domain does not exist'

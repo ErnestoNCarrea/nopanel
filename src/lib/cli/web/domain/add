@@ -15,7 +15,7 @@ nopanel_web_domain_add() {
         return
     fi
 
-    source $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/domain.inc
 
     # Default values
     [[ ! "$param_php" ]] && param_php='no'

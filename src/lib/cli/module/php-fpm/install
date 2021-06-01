@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_module_php-fpm_install() {
-    source $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/module.inc
     nplib_command_echo "Installing noPanel PHP (FPM) module..."
 
     osal_package_preinstall > /dev/null 2>&1

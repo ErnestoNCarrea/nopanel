@@ -1,8 +1,8 @@
 #!/bin/bash
 
 nopanel_module_php-fpm_add() {
-    source $NOPANEL_LIB/module.inc
-    source $NOPANEL_LIB/php.inc
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/php.inc
 
     if ! nplib_modules_get_installed 'php-fpm'; then
         nplib_command_return 'error' 'PHP (FPM) module not installed'

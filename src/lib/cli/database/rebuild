@@ -6,8 +6,8 @@ nopanel_database_rebuild() {
         return
     fi
 
-    source $NOPANEL_LIB/user.inc
-    source $NOPANEL_LIB/database.inc
+    nplib_require $NOPANEL_LIB/user.inc
+    nplib_require $NOPANEL_LIB/database.inc
 
     if [[ "$param_user" ]]; then
         nopanel_db_rebuild_user "$param_user"
@@ -43,7 +43,7 @@ nopanel_db_rebuild_user_db() {
 
     nplib_command_echo "  - Setting up database $full_db_name..."
 
-    source $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/domain.inc
     
     nopanel_db_mysql_query "CREATE DATABASE IF NOT EXISTS \`$full_db_name\`"
     nopanel_db_mysql_query "GRANT ALL ON \`$full_db_name\`.* TO \`$param_dbuser\`@\`%\` IDENTIFIED BY '$param_password'"

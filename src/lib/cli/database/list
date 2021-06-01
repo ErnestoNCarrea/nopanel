@@ -11,7 +11,7 @@ nopanel_database_list() {
         return
     fi
 
-    source $NOPANEL_LIB/database.inc
+    nplib_require $NOPANEL_LIB/database.inc
 
     if [[ "$param_output_json" ]]; then
         local dblist=$(nplib_databases_list_json)

@@ -6,9 +6,9 @@ nopanel_web_domain_rebuild() {
         return
     fi
 
-    source $NOPANEL_LIB/module.inc
-    source $NOPANEL_LIB/user.inc
-    source $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/user.inc
+    nplib_require $NOPANEL_LIB/domain.inc
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user "$param_user"
