@@ -6,16 +6,24 @@ nopanel_user_commit() {
         return
     fi
 
-    if [[ ! "$param_user" ]]; then
-        nplib_command_output 'error' 'Username not specified (--user)'
-        return
-    fi
-
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/user.inc
-    
-    USER_HOME="$NOPANEL_HOME/$param_user"
 
+    if [[ "$param_user" ]]; then
+        nopanel_user_commit_rebuild
+    else
+        # Rebuild all users
+        for param_user in $(nplib_users_list); do
+            nopanel_user_commit_rebuild
+        done
+        unset param_user
+    fi
+    
+    nplib_command_output 'ok' 'User configuration applied'
+}
+
+nopanel_user_commit_rebuild() {
+    USER_HOME="$NOPANEL_HOME/$param_user"
     local USER_DELETED=$(nplib_users_get "$param_user" 'delete')
 
     if nplib_is_true $USER_DELETED; then
@@ -23,8 +31,6 @@ nopanel_user_commit() {
     else
         nopanel_user_commit_update
     fi
-
-    nplib_command_output 'ok' 'User configuration applied'
 }
 
 nopanel_user_commit_update() {
