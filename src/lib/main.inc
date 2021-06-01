@@ -1,4 +1,6 @@
 #!/bin/bash
+# noPanel library (nplib) misc functions
+# © Ernesto N. Carrea / https://www.nopanel.cc
 
 nplib_command_echo() {
     if [[ "$param_interactive" != "false" ]] && [[ ! "$param_output_silent" ]]; then
@@ -117,8 +119,8 @@ nplib_is_nopanel_admin() {
     groups $usr | grep -q '\bnopanel-admins\b'
 }
 
+# check if there is --user and if current user is allowed to use it
 nplib_check_user() {
-
     if ! nplib_is_nopanel_admin; then
         # is regular user
         if [[ "$param_user" ]] && [ ! "$param_user" = "$USER" ]; then
@@ -131,6 +133,17 @@ nplib_check_user() {
         if [[ ! "$param_user" ]]; then
             param_user=$USER
         fi
+    elif [ ! $param_user = $USER ]; then
+        # admin trying to impersonate another user, auto elevate
+        nplib_elevate
+    fi
+}
+
+# re-run this script as root
+nplib_elevate() {
+    if [ "$EUID" -ne 0 ]; then
+        sudo "$0" "$nplib_original_params"
+        exit $?
     fi
 }
 
