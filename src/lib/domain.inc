@@ -7,7 +7,7 @@ nplib_domains_set() {
 
 # nplib_domains_get 'domain' 'key'
 nplib_domains_get() {
-    osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"$1\".\"$2\""
+    osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"$1\".\"$2\" // \"\""
 }
 
 # nplib_domains_list ['user']

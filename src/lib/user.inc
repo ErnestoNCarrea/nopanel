@@ -7,12 +7,12 @@ nplib_users_set() {
 
 # nplib_users_get 'username' 'key'
 nplib_users_get() {
-    osal_json_get "$NOPANEL_ETC/users.json" ".\"$1\" | .\"$2\""
+    osal_json_get "$NOPANEL_ETC/users.json" ".\"$1\".\"$2\" // \"\""
 }
 
 # nplib_users_exists 'username'
 nplib_users_exists() {
-    [[ $(osal_json_get "$NOPANEL_ETC/users.json" ".\"$1\" | .name") ]]
+    [[ $(osal_json_get "$1" 'name') ]]
 }
 
 # nplib_users_list
