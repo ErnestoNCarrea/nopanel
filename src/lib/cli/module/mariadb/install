@@ -1,15 +1,17 @@
 #!/bin/bash
 
 nopanel_module_mariadb_install() {
+    nplib_command_echo "= Install noPanel MariaDB module"
+
+    nplib_require $NOPANEL_LIB/module.inc
     nplib_auto_elevate
-    nplib_command_echo "Installing noPanel MariaDB module"
 
     local mariadb_version='10.5'
 
     osal_service_stop $OSAL_SERVICE_MARIADB > /dev/null 2>&1
     nplib_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
 
-    nplib_command_echo " - Installing MariaDB package(s)"
+    nplib_command_echo "- Installing MariaDB package(s)"
     # Setup repos
     if [ "$OS_BASE" = 'debian' ]; then
         cat > /etc/apt/sources.list.d/mariadb.list <<EOL
@@ -41,7 +43,7 @@ EOL
     osal_package_preinstall > /dev/null 2>&1
     osal_package_install ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common > /dev/null 2>&1
 
-    nplib_command_echo " - Creating configuration files and directories"
+    nplib_command_echo "- Creating configuration files and directories"
 
     local memory=$(grep 'MemTotal' /proc/meminfo |tr ' ' '\n' |grep [0-9])
     local mycnf="my-small.cnf"
@@ -61,12 +63,12 @@ EOL
 
     [[ -d  /var/run/mysqld ]] && chown mysql:mysql /var/run/mysqld
 
-    nplib_command_echo " - Enabling and starting MariaDB service"
+    nplib_command_echo "- Enabling and starting MariaDB service"
 
     osal_service_enable $OSAL_SERVICE_MARIADB > /dev/null 2>&1
     osal_service_start $OSAL_SERVICE_MARIADB > /dev/null 2>&1
 
-    nplib_command_echo " - Additional MariaDB configuration"
+    nplib_command_echo "- Additional MariaDB configuration"
 
     if [ ! -s ~/.my.cnf ]; then
         # If /root/.my.cnf does not exist, secure MariaDB by setting root password
