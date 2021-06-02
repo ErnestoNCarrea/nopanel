@@ -35,7 +35,7 @@ NOPANEL_HOME=/home
 
 source $NOPANEL_LIB/osal.inc
 
-if [[ ! -s /etc/nopanel/nopanel.json ]]; then
+if [[ ! -s /etc/nopanel/nopanel.json ]] && [[ "$1" != 'init' ]]; then
     echo "noPanel setup is not complete"
     echo "Please run '${0} init' to complete installation."
     exit 1
