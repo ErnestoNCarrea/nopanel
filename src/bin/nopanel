@@ -4,7 +4,7 @@
 
 NOPANEL_VERSION=0.1
 
-# Get current script full path
+# Get correct paths from current script
 pushd . > /dev/null
 NOPANEL_BIN="${BASH_SOURCE[0]}"
 if ([ -h "${NOPANEL_BIN}" ]); then

@@ -11,6 +11,7 @@ nopanel_web_domain_commit() {
     nplib_require $NOPANEL_LIB/module.inc
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/commit.inc
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user
@@ -33,22 +34,33 @@ nopanel_web_domain_rebuild_user() {
     if [[ "$param_domain" ]]; then
         nopanel_web_domain_rebuild_user_domain
     else
-        # Rebuild all domaind
-        for param_domain in $(nplib_domains_list $param_user); do
+        # Rebuild all domains
+        if [[ "$param_all" ]]; then
+            local DELETED=""
+            local CHANGED="$(nplib_domains_list)"
+        else
+            local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/nopanel/domains.json)
+            local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/nopanel/domains.json)
+        fi
+
+        for param_domain in $DELETED; do
+            nopanel_web_domain_delete_user_domain
+        done
+
+        for param_domain in $CHANGED; do
             nopanel_web_domain_rebuild_user_domain
         done
         unset param_domain
     fi
+
+    nplib_commits_save $NOPANEL_HOME/$param_user/nopanel/domains.json
 }
 
 nopanel_web_domain_rebuild_user_domain() {
     local DOMAIN_WEB=$(nplib_domains_get "$param_domain" 'web')
 
-    if [ "$DOMAIN_WEB" = 'delete' ]; then
+    if ! nplib_is_true $DOMAIN_WEB; then
         nopanel_web_domain_delete_user_domain
-        return
-    elif ! nplib_is_true $DOMAIN_WEB; then
-        return
     fi
     nplib_command_echo "- Configuring web domain $param_user/$param_domain"
 
@@ -119,12 +131,12 @@ nopanel_web_domain_rebuild_user_domain() {
 }
 
 nopanel_web_domain_delete_user_domain() {
-    nplib_command_echo "  - Deleting web domain $param_domain"
     local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
-    local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
-    nplib_safe_rm $WEB_LOGS/domains/$param_domain $APACHE_CONF_FILE
-
-    nplib_domains_set "$param_domain" 'web' 'no'
+    if [[ -f $APACHE_CONF_FILE ]]; then
+        nplib_command_echo "  - Deleting web domain $param_domain"
+        local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
+        nplib_safe_rm $WEB_LOGS/domains/$param_domain $APACHE_CONF_FILE
+    fi
 }
 
 # copy a file to a destination, replacing template vars

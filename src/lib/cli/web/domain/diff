@@ -1,0 +1,25 @@
+#!/bin/bash
+
+nopanel_web_domain_diff() {
+    nplib_command_echo "= Web domain diff"
+    if [[ "$param_help" ]]; then
+        nopanel web help
+        return
+    fi
+
+    if [[ ! "$param_user" ]]; then
+        nplib_command_output 'error' 'Username not specified (--user)'
+        return
+    fi
+
+    nplib_auto_elevate
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/user.inc
+    nplib_require $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/commit.inc
+
+    local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/nopanel/domains.json)
+    local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/nopanel/domains.json)
+    
+    nplib_command_output 'ok' 'Web domain diff' "{deleted: \"$DELETED\", changed: \"$CHANGED\"}"
+}

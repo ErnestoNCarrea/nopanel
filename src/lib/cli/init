@@ -17,9 +17,9 @@ nopanel_init() {
         groupadd --system "nopanel-admins"
     fi
 
-    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
-    chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_LOG
-    chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_LOG
+    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG
+    chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG
+    chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG 
     chmod g+rs $NOPANEL_ETC $NOPANEL_LOG
 
     # Initialize missing configuration files to empty json

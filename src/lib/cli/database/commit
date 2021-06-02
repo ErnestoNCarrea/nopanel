@@ -11,6 +11,7 @@ nopanel_database_commit() {
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/database.inc
+    nplib_require $NOPANEL_LIB/commit.inc
 
     if [[ "$param_user" ]]; then
         nopanel_db_rebuild_user "$param_user"
@@ -32,36 +33,54 @@ nopanel_db_rebuild_user() {
     else
         # Rebuild all dbs
         for param_db in $(nplib_databases_list "$param_user"); do
-            nopanel_db_rebuild_user_db
+            # Rebuild all databases
+            if [[ "$param_all" ]]; then
+                local DELETED=""
+                local CHANGED="$(nplib_databases_list)"
+            else
+                local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/nopanel/databases.json)
+                local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/nopanel/databases.json)
+            fi
+
+            for param_db in $DELETED; do
+                nopanel_db_delete_user_db
+            done
+
+            for param_db in $CHANGED; do
+                nopanel_db_rebuild_user_db
+            done
         done
         unset param_db
     fi
+
+    nplib_commits_save $NOPANEL_HOME/$param_user/nopanel/databases.json
 }
 
 nopanel_db_rebuild_user_db() {
     local DB_FULLNAME="${param_user}_${param_db}"
-    local DB_DELETE=$(nplib_databases_get "$DB_FULLNAME" 'delete')
     local DB_USER=$(nplib_databases_get "$DB_FULLNAME" 'dbuser')
     local DB_FULLUSER="${param_user}_${DB_USER}"
 
-    if nplib_is_true $DB_DELETE; then
-        nplib_command_echo "- Dropping database $param_user/$param_db"
-        nopanel_db_mysql_query "DROP DATABASE IF EXISTS \`$DB_FULLNAME\`"
-        nopanel_db_mysql_query "DROP USER IF EXISTS \`$DB_FULLUSER\`"
+    nplib_command_echo "- Configuring database $param_user/$param_db"
+    
+    nopanel_db_mysql_query "CREATE DATABASE IF NOT EXISTS \`$DB_FULLNAME\`"
 
-        nplib_databases_delete $DB_FULLNAME
-    else
-        nplib_command_echo "- Configuring database $param_user/$param_db"
-        
-        nopanel_db_mysql_query "CREATE DATABASE IF NOT EXISTS \`$DB_FULLNAME\`"
-
-        local DB_PASSWORD=$(nplib_databases_get "$DB_FULLNAME" 'password')
-        if [[ "$DB_PASSWORD" ]]; then
-            nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
-            nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`localhost\` IDENTIFIED BY '$DB_PASSWORD'"
-            local DB_PASSWORD=$(nplib_databases_set "$DB_FULLNAME" 'password' '')
-        fi
+    local DB_PASSWORD=$(nplib_databases_get "$DB_FULLNAME" 'password')
+    if [[ "$DB_PASSWORD" ]]; then
+        nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
+        nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`localhost\` IDENTIFIED BY '$DB_PASSWORD'"
+        local DB_PASSWORD=$(nplib_databases_set "$DB_FULLNAME" 'password' '')
     fi
+}
+
+nopanel_db_delete_user_db() {
+    local DB_FULLNAME="${param_user}_${param_db}"
+    local DB_USER=$(nplib_databases_get "$DB_FULLNAME" 'dbuser')
+    local DB_FULLUSER="${param_user}_${DB_USER}"
+
+    nplib_command_echo "- Dropping database $param_user/$param_db"
+    nopanel_db_mysql_query "DROP DATABASE IF EXISTS \`$DB_FULLNAME\`"
+    nopanel_db_mysql_query "DROP USER IF EXISTS \`$DB_FULLUSER\`"
 }
 
 nopanel_db_mysql_query() {

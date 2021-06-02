@@ -10,6 +10,11 @@ nplib_domains_get() {
     osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"$1\".\"$2\" // \"\""
 }
 
+# nplib_domains_get_all 'domain'
+nplib_domains_get_all() {
+    osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"$1\" // {}"
+}
+
 # nplib_domains_list ['user']
 nplib_domains_list() {
     if [[ "$1" ]]; then
