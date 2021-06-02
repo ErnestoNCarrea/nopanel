@@ -84,15 +84,24 @@ nopanel_web_domain_rebuild_user_domain() {
         local PHP_FPM_FGCI='localhost'
     fi
 
-    pushd $NOPANEL_DATA/web/skel > /dev/null
-    for FILE in $(find ./ -type f); do
-        nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel/$FILE" "$DOMAIN_FOLDER/$FILE"
-        chown $param_user:$param_user "$DOMAIN_FOLDER/$FILE"
-    done
-    popd > /dev/null
+    if [[ ! -s "$DOMAIN_DOCROOT/.nopanel" ]]; then
+        # Looks empty
+        pushd $NOPANEL_DATA/web/skel > /dev/null
+        for FILE in $(find ./ -type f); do
+            nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel/$FILE" "$DOMAIN_FOLDER/$FILE"
+            chown $param_user:$param_user "$DOMAIN_FOLDER/$FILE"
+        done
+        popd > /dev/null
+
+        echo '# This site was created using noPanel / https://www.nopanel.cc' >> "$DOMAIN_DOCROOT/.nopanel"
+        chown $param_user:$param_user "$DOMAIN_DOCROOT/.nopanel"
+    fi
 
     # Setup logs
     touch $WEB_LOGS/domains/$param_domain.bytes \
+        $WEB_LOGS/domains/$param_domain.log \
+        $WEB_LOGS/domains/$param_domain.error.log
+    chmod 0660 $WEB_LOGS/domains/$param_domain.bytes \
         $WEB_LOGS/domains/$param_domain.log \
         $WEB_LOGS/domains/$param_domain.error.log
     ln -f -s $WEB_LOGS/domains/$param_domain.*log \
