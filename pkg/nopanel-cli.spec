@@ -41,7 +41,9 @@ cp -rfa "%{_sourcedir}/../share"/* "%{buildroot}/usr/share/nopanel/"
 %pre
 
 %post
-%{_bindir}/nopanel init --interactive false --output silent
+if [[ -f /etc/nopanel/nopanel.json ]]; then
+    %{_bindir}/nopanel upgrade --interactive no --output silent
+fi
 
 %preun
 
