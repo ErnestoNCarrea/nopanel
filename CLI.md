@@ -16,8 +16,8 @@ nopanel [--output json|plain] [--interactive [yes|no]]
 [Rid]   module mariadb wipe --force
 
 [n]     user list
-[c]     user add --user USERNAME --password PASSWORD [--email EMAIL] [--shell SHELL] [--fullname FULL_NAME] [--admin [no]] [--force]
-[ic]    user mod --user USERNAME [--password PASSWORD] [--email EMAIL] [--shell SHELL] [--fullname FULL_NAME] [--admin [no]]
+[c]     user add --user USERNAME --password PASSWORD [--email EMAIL] [--login [yes|no]] [--sftp [yes|no]] [--fullname FULL_NAME] [--admin [yes|no]] [--force]
+[ic]    user mod --user USERNAME [--password PASSWORD] [--email EMAIL] [--login [yes|no]] [--sftp [yes|no]] [--fullname FULL_NAME] [--admin [yes|no]]
 [c]     user remove --user USERNAME --force [--delete [--no-backup]]
 [Ri]    user commit [--user USER]
 
