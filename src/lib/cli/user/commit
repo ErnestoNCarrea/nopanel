@@ -44,7 +44,8 @@ nopanel_user_commit_update() {
     local USER_HOME="$NOPANEL_HOME/$param_user"
     local USER_FULLNAME=$(nplib_users_get "$param_user" 'fullname')
     local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
-    local USER_SHELL=$(nplib_users_get "$param_user" 'shell')
+    local USER_LOGIN=$(nplib_users_get "$param_user" 'login')
+    local USER_SFTP=$(nplib_users_get "$param_user" 'sftp')
     local USER_ADMIN=$(nplib_users_get "$param_user" 'admin')
     local USER_PASSWORD=$(nplib_users_get "$param_user" 'password')
     local useradd_params="--groups nopanel-users "
@@ -71,13 +72,15 @@ nopanel_user_commit_update() {
     fi
 
     # Default shell
-    if [[ "$USER_SHELL" ]]; then
-        USER_SHELL=$(grep -w "$USER_SHELL" /etc/shells | head -n1)
-        if [[ ! "$USER_SHELL" ]]; then
-            nplib_command_echo " - Ignoring unrecognized shell $USER_SHELL"
-        else
-            /usr/sbin/usermod --shell "$USER_SHELL" "$param_user" > /dev/null 2>&1
-        fi
+    if nplib_is_true "$USER_LOGIN"; then
+        /usr/sbin/usermod --shell "/usr/bin/bash" "$param_user" > /dev/null 2>&1
+    else
+        /usr/sbin/usermod --shell "/usr/sbin/nologin" "$param_user" > /dev/null 2>&1
+    fi
+    if nplib_is_true "$USER_SFTP"; then
+        /usr/sbin/usermod -a -G nopanel-sftp "$param_user"
+    else
+        /usr/bin/gpasswd -d "$param_user" nopanel-sftp
     fi
 
     nplib_command_echo ' - Setting up home directory and permissions'
