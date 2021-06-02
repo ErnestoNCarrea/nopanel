@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_web_domain_mod() {
-    nplib_command_echo "= Modifying web domain $param_domain"
+    nplib_command_echo "= Set web domain"
 
     if [[ "$param_help" ]]; then
         nopanel web help

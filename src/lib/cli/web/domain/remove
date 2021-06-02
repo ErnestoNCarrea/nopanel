@@ -1,6 +1,8 @@
 #!/bin/bash
 
 nopanel_web_domain_remove() {
+    nplib_command_echo "= Delete web domain"
+
     if [[ "$param_help" ]]; then
         nopanel web help
         return
@@ -27,9 +29,9 @@ nopanel_web_domain_remove() {
 
     nplib_domains_set "$param_domain" 'web' 'delete'
 
-    nplib_command_output 'ok' 'Web domain deleted'
-
     if [[ "$param_commit" ]]; then
         nopanel web domain commit
     fi
+
+    nplib_command_output 'ok' 'Web domain deleted'
 }
