@@ -22,7 +22,7 @@ nopanel_database_commit() {
         unset param_user
     fi
 
-    nplib_command_output 'ok' 'Domain configuration generated'
+    nplib_command_output 'ok' 'Database configuration applied'
 }
 
 
@@ -30,7 +30,7 @@ nopanel_db_rebuild_user() {
     if [[ "$param_db" ]]; then
         nopanel_db_rebuild_user_db
     else
-        # Rebuild all domaind
+        # Rebuild all dbs
         for param_db in $(nplib_databases_list "$param_user"); do
             nopanel_db_rebuild_user_db
         done
@@ -42,21 +42,25 @@ nopanel_db_rebuild_user_db() {
     local DB_FULLNAME="${param_user}_${param_db}"
     local DB_DELETE=$(nplib_databases_get "$DB_FULLNAME" 'delete')
     local DB_USER=$(nplib_databases_get "$DB_FULLNAME" 'dbuser')
+    local DB_FULLUSER="${param_user}_${DB_USER}"
 
     if nplib_is_true $DB_DELETE; then
         nplib_command_echo "- Dropping database $param_user/$param_db"
         nopanel_db_mysql_query "DROP DATABASE IF EXISTS \`$DB_FULLNAME\`"
-        nopanel_db_mysql_query "DROP USER IF EXISTS \`$DB_USER\`"
+        nopanel_db_mysql_query "DROP USER IF EXISTS \`$DB_FULLUSER\`"
 
         nplib_databases_delete $DB_FULLNAME
     else
-        local DB_PASSWORD=$(nplib_databases_get "$DB_FULLNAME" 'password')
-
         nplib_command_echo "- Configuring database $param_user/$param_db"
         
         nopanel_db_mysql_query "CREATE DATABASE IF NOT EXISTS \`$DB_FULLNAME\`"
-        nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_USER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
-        nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_USER\`@localhost IDENTIFIED BY '$DB_PASSWORD'"
+
+        local DB_PASSWORD=$(nplib_databases_get "$DB_FULLNAME" 'password')
+        if [[ "$DB_PASSWORD" ]]; then
+            nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
+            nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`localhost\` IDENTIFIED BY '$DB_PASSWORD'"
+            local DB_PASSWORD=$(nplib_databases_set "$DB_FULLNAME" 'password' '')
+        fi
     fi
 }
 

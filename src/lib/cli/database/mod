@@ -28,9 +28,8 @@ nopanel_database_mod() {
     fi
 
     # Update noPanel DB
-    nplib_command_echo "Creating database $param_db for user $param_user"
-
-    nplib_databases_set "$DB_FULLNAME" 'password' "$param_password"
+    nplib_databases_set "$DB_FULLNAME" 'delete' 'no'
+    [[ "$param_password" ]] && nplib_databases_set "$DB_FULLNAME" 'password' "$param_password"
 
     if [[ "$param_commit" ]]; then
         nopanel database commit

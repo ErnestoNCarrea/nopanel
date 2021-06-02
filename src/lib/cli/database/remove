@@ -36,9 +36,9 @@ nopanel_database_remove() {
 
     nplib_databases_set "$DB_FULLNAME" 'delete' 'yes'
 
-    nplib_command_output 'ok' 'Database removed'
-
     if [[ "$param_commit" ]]; then
         nopanel database commit
     fi
+
+    nplib_command_output 'ok' 'Database removed'
 }
