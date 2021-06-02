@@ -86,7 +86,8 @@ nopanel_web_domain_rebuild_user_domain() {
 
     pushd $NOPANEL_DATA/web/skel > /dev/null
     for FILE in $(find ./ -type f); do
-        nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel" $FILE "$DOMAIN_FOLDER"
+        nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel/$FILE" "$DOMAIN_FOLDER/$FILE"
+        chown $param_user:$param_user "$DOMAIN_FOLDER/$FILE"
     done
     popd > /dev/null
 
@@ -123,6 +124,7 @@ nopanel_web_domain_commit_install_file() {
     SRC_FILE=$1
     DST_FILE=$2
     if [ ! -f $DST_FILE ] || [ "$3" = 'overwrite' ]; then
+        nplib_command_log "- Install $SRC_FILE in $DST_FILE"
         cat $SRC_FILE | sed \
             -e "s|%NOPANEL_IP%|\*|g" \
             -e "s|%NOPANEL_USER%|$param_user|g" \
