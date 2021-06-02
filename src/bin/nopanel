@@ -71,9 +71,11 @@ nopanel() {
 
         if [ "$cmd_type" = 'not-found' ]; then
             nplib_command_output 'error' "Unrecognized command: $@ (was ok until '$cmd_file')"
+            res=1
         elif [ "$cmd_type" = 'include' ]; then
             nplib_require $cmd_file
             nopanel_$cmd_name $@
+            res=$?
         elif [ "$cmd_type" = 'dir' ]; then
             # Found to dir level, but no file. Assume 'help' command
             if [ -f "$NOPANEL_LIB/${cmd_file}/help" ]; then
@@ -83,14 +85,17 @@ nopanel() {
             fi
         else
             $cmd_file $@
+            res=$?
         fi
     else
         nplib_command_output 'error' "Unrecognized command: $@"
         ((NOPANEL_RECURSION_LEVEL-=1))
-        return 1
+        res=1
     fi
 
     ((NOPANEL_RECURSION_LEVEL-=1))
+
+    return $res
 }
 
 # If this files is _not_ being sourced, act immediately
