@@ -81,6 +81,9 @@ OSAL_SERVICE_SPAMASSASSIN=spamassassin
 OSAL_PKG_SPAMASSASSIN=spamassassin
 OSAL_PATH_SPAMASSASSIN_CONF=/etc/spamassassin
 
+# SSH
+OSAL_SSHD_CONFIG=/etc/ssh/sshd_config
+
 # vsftp
 OSAL_PATH_VSFTPD_CONF=/etc/vsftpd.conf
 

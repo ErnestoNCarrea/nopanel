@@ -9,6 +9,7 @@ nopanel_init() {
     nplib_auto_elevate
     nplib_command_echo "Initializing noPanel version $NOPANEL_VERSION"
 
+    nplib_command_echo "- Creating groups and folders"
     # Add a general group for normal users and admins
     if [ -z "$(grep ^nopanel-users: /etc/group)" ]; then
         groupadd --system "nopanel-users"
@@ -16,12 +17,16 @@ nopanel_init() {
     if [ -z "$(grep ^nopanel-admins: /etc/group)" ]; then
         groupadd --system "nopanel-admins"
     fi
+    if [ -z "$(grep ^nopanel-sftp: /etc/group)" ]; then
+        groupadd --system "nopanel-sftp"
+    fi
 
     mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG
     chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG
     chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG 
     chmod g+rs $NOPANEL_ETC $NOPANEL_LOG
 
+    nplib_command_echo "- Creating initial configuration"
     # Initialize missing configuration files to empty json
     for FILE in nopanel.json modules.json users.json web-domains.json mail-domains.json databases.json
     do
@@ -30,7 +35,7 @@ nopanel_init() {
         chown root:nopanel-admins $NOPANEL_ETC/$FILE
     done
 
-    nplib_command_echo " - Installing template files"
+    nplib_command_echo "- Installing template files"
     nplib_install_template_files "etc/*" "/etc/"
 
     # merge .json.dist into .json files (will not overwrite any .json value)
@@ -42,9 +47,25 @@ nopanel_init() {
     done
 
     if [ "$OS_BASE" = 'rhel' ]; then
-        nplib_command_echo " - Enabling EPEL repository"
+        nplib_command_echo "- Enabling EPEL repository"
         osal_package_preinstall > /dev/null 2>&1
         osal_package_install epel-release > /dev/null 2>&1
+    fi
+
+    nplib_command_echo "- Enabling SFTP jails"
+    # disable internal SFTP
+    sed -i "s/^Subsystem.*sftp/#Subsystem sftp/" $OSAL_SSHD_CONFIG
+    # enable SFTP jail
+    if ! grep "# noPanel SFTP jail" $OSAL_SSHD_CONFIG > /dev/null; then
+        cat << EOF >> $OSAL_SSHD_CONFIG
+# noPanel SFTP jail
+Match Group nopanel-sftp
+ChrootDirectory %h
+    X11Forwarding no
+    AllowTCPForwarding no
+    ForceCommand internal-sftp
+
+EOF
     fi
 
     nplib_command_output 'ok' 'noPanel ready'
