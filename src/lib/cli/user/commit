@@ -46,6 +46,7 @@ nopanel_user_commit_update() {
     local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
     local USER_SHELL=$(nplib_users_get "$param_user" 'shell')
     local USER_ADMIN=$(nplib_users_get "$param_user" 'admin')
+    local USER_PASSWORD=$(nplib_users_get "$param_user" 'password')
     local useradd_params="--groups nopanel-users "
 
     # Add user and set password
@@ -59,6 +60,14 @@ nopanel_user_commit_update() {
         fi
 
         /usr/sbin/useradd $useradd_params $param_user > /dev/null 2>&1
+    fi
+
+    # change password if specified
+    if [[ "$USER_PASSWORD" ]]; then
+        nplib_command_echo ' - Setting password'
+        echo "$param_user:$USER_PASSWORD" | /usr/sbin/chpasswd
+        # and clear password in db
+        nplib_users_set "$param_user" 'password' ''
     fi
 
     # Default shell
