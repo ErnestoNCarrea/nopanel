@@ -32,3 +32,8 @@ nplib_databases_list_json() {
 nplib_databases_exists() {
     [[ $(nplib_databases_get "$1" 'name') ]]
 }
+
+# nplib_databases_delete 'username'
+nplib_databases_delete() {
+    osal_json_set "$NOPANEL_HOME/$param_user/nopanel/databases.json" "del(.\"$1\")"
+}
