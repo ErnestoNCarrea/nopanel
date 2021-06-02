@@ -30,7 +30,7 @@ nopanel_init() {
         chown root:nopanel-admins $NOPANEL_ETC/$FILE
     done
 
-    nplib_command_echo " - Installing template files..."
+    nplib_command_echo " - Installing template files"
     nplib_install_template_files "etc/*" "/etc/"
 
     # merge .json.dist into .json files (will not overwrite any .json value)
@@ -42,7 +42,7 @@ nopanel_init() {
     done
 
     if [ "$OS_BASE" = 'rhel' ]; then
-        nplib_command_echo " - Enabling EPEL repository..."
+        nplib_command_echo " - Enabling EPEL repository"
         osal_package_preinstall > /dev/null 2>&1
         osal_package_install epel-release > /dev/null 2>&1
     fi

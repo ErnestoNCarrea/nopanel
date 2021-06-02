@@ -23,7 +23,7 @@ nopanel_web_domain_remove() {
     fi
 
     # Update noPanel DB
-    nplib_command_echo "Deleting $param_domain..."
+    nplib_command_echo "Deleting $param_domain"
 
     nplib_domains_set "$param_domain" 'web' 'delete'
 

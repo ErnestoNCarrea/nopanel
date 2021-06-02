@@ -1,6 +1,8 @@
 #!/bin/bash
 
 nopanel_database_list() {
+    nplib_command_echo "= List databases"
+
     if [[ "$param_help" ]]; then
         nopanel web help
         return

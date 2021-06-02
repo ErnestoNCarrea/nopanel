@@ -37,7 +37,7 @@ nopanel_module_php-fpm_add() {
         return
     fi
 
-    nplib_command_echo "Adding PHP (FPM) version $param_version..."
+    nplib_command_echo "Adding PHP (FPM) version $param_version"
 
     local php_prefix=$(osal_php_package_prefix $param_version)
 
@@ -46,7 +46,7 @@ nopanel_module_php-fpm_add() {
     osal_package_install $php_prefix-fpm > /dev/null 2>&1
 
     WEB_SERVER=$(nplib_modules_get 'web' 'server')
-    nplib_command_echo " - Configuring for $WEB_SERVER..."
+    nplib_command_echo " - Configuring for $WEB_SERVER"
 
     # Check if required modules for apache2 are enabled
     if [ "$WEB_SERVER" = 'apache' ]; then

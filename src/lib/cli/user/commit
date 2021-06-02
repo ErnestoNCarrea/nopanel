@@ -1,6 +1,8 @@
 #!/bin/bash
 
 nopanel_user_commit() {
+    nplib_command_echo "= Commit user configuration"
+
     if [[ "$param_help" ]]; then
         nopanel user help
         return

@@ -2,7 +2,7 @@
 
 nopanel_module_apache_reload() {
     nplib_auto_elevate
-    nplib_command_echo "Reloading Apache web server..."
+    nplib_command_echo "Reloading Apache web server"
 
     apachectl -k graceful
         

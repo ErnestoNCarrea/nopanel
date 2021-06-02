@@ -2,7 +2,7 @@
 
 nopanel_module_mariadb_install() {
     nplib_auto_elevate
-    nplib_command_echo "Installing noPanel MariaDB module..."
+    nplib_command_echo "Installing noPanel MariaDB module"
 
     local mariadb_version='10.5'
 

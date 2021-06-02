@@ -3,17 +3,17 @@
 nopanel_module_php-fpm_install() {
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/module.inc
-    nplib_command_echo "Installing noPanel PHP (FPM) module..."
+    nplib_command_echo "Installing noPanel PHP (FPM) module"
 
     osal_package_preinstall > /dev/null 2>&1
 
     case $OS_TYPE in
         'fedora')
-            nplib_command_echo " - Adding Remi repository..."
+            nplib_command_echo " - Adding Remi repository"
             osal_package_install "https://rpms.remirepo.net/fedora/remi-release-${OS_VERSION}.rpm" > /dev/null 2>&1
             ;;
         'centos')
-            nplib_command_echo " - Adding Remi repository..."
+            nplib_command_echo " - Adding Remi repository"
             osal_package_install "https://rpms.remirepo.net/enterprise/remi-release-${OS_VERSION}.rpm" > /dev/null 2>&1
             ;;
     esac

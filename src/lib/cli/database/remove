@@ -1,10 +1,10 @@
 #!/bin/bash
 
-nopanel_database_mod() {
-    nplib_command_echo "= Set database"
+nopanel_database_remove() {
+    nplib_command_echo "= Remove database"
 
     if [[ "$param_help" ]]; then
-        nopanel database help
+        nopanel user help
         return
     fi
 
@@ -18,6 +18,11 @@ nopanel_database_mod() {
         return
     fi
 
+    if [[ ! "$param_force" ]]; then
+        nplib_command_output 'error' 'Refusing to remove user unless --force is used'
+        return
+    fi
+
     nplib_require $NOPANEL_LIB/database.inc
 
     local DB_FULLNAME="${param_user}_${param_db}"
@@ -27,14 +32,13 @@ nopanel_database_mod() {
         return
     fi
 
-    # Update noPanel DB
-    nplib_command_echo "Creating database $param_db for user $param_user"
+    nplib_require $NOPANEL_LIB/database.inc
 
-    nplib_databases_set "$DB_FULLNAME" 'password' "$param_password"
+    nplib_databases_set "$DB_FULLNAME" 'delete' 'yes'
+
+    nplib_command_output 'ok' 'Database removed'
 
     if [[ "$param_commit" ]]; then
         nopanel database commit
     fi
-
-    nplib_command_output 'ok' 'Database saved'
 }

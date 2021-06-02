@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nopanel_web_domain_commit() {
-    nplib_command_echo "= Aplying web domain configuration changes"
+    nplib_command_echo "= Commit web domain configuration"
     if [[ "$param_help" ]]; then
         nopanel web help
         return
@@ -30,7 +30,6 @@ nopanel_web_domain_commit() {
 }
 
 nopanel_web_domain_rebuild_user() {
-    nplib_command_echo "- Processing user $param_user..."
     if [[ "$param_domain" ]]; then
         nopanel_web_domain_rebuild_user_domain
     else
@@ -51,7 +50,7 @@ nopanel_web_domain_rebuild_user_domain() {
     elif ! nplib_is_true $DOMAIN_WEB; then
         return
     fi
-    nplib_command_echo "- Configuring web server for domain $param_domain..."
+    nplib_command_echo "- Configuring web domain $param_user/$param_domain"
 
     # Create and populate default folders
     local USER_HOME="$NOPANEL_HOME/$param_user"
@@ -110,7 +109,7 @@ nopanel_web_domain_rebuild_user_domain() {
 }
 
 nopanel_web_domain_delete_user_domain() {
-    nplib_command_echo "  - Deleting web server configuration for domain $param_domain..."
+    nplib_command_echo "  - Deleting web domain $param_domain"
     local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
     local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
     nplib_safe_rm $WEB_LOGS/domains/$param_domain $APACHE_CONF_FILE

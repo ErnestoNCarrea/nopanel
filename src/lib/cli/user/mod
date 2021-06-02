@@ -1,6 +1,8 @@
 #!/bin/bash
 
 nopanel_user_mod() {
+    nplib_command_echo "= Set user"
+
     if [[ "$param_help" ]]; then
         nopanel user help
         return
