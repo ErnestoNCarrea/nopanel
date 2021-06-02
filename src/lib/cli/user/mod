@@ -25,6 +25,7 @@ nopanel_user_mod() {
         return
     fi
     
+    nplib_users_set "$param_user" 'delete' 'no'
     [[ "$param_fullname" ]] && nplib_users_set "$param_user" 'fullname' "$param_fullname"
     [[ "$param_email" ]] && nplib_users_set "$param_user" 'email' "$param_email"
     [[ "$param_shell" ]] && nplib_users_set "$param_user" 'shell' "$param_shell"

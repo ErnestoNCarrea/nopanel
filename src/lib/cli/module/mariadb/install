@@ -68,7 +68,7 @@ EOL
 
     nplib_command_echo " - Additional MariaDB configuration"
 
-    if [ ! -f ~/.my.cnf ]; then
+    if [ ! -s ~/.my.cnf ]; then
         # If /root/.my.cnf does not exist, secure MariaDB by setting root password
         local mariadb_root_password=$(osal_gen_pass)
         mysqladmin -u root password $mariadb_root_password

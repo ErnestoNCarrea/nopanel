@@ -106,7 +106,7 @@ sed_escape() {
 # osal_json_set 'file' 'value'
 osal_json_set() {
     local tmpfile=$(mktemp)
-    [[ -f "$1" ]] || echo '{}' > "$1"
+    [[ -s "$1" ]] || echo '{}' > "$1"
     jq "$2" "$1" > "$tmpfile" && (chown --reference=$1 $tmpfile; chmod --reference=$1 $tmpfile; mv "$tmpfile" "$1")
 }
 
@@ -128,7 +128,7 @@ osal_kv_write() {
 # value=$(osal_kv_read path key defaultvalue)
 osal_kv_read() {
     local kv_keyname=$(echo "$2" | sed_escape)
-    if [ -f "$1" ]; then
+    if [ -s "$1" ]; then
         local retval=$(grep "^$kv_keyname\s*=" "$1" | sed "s/^$kv_keyname\s*=\s*//" | tail -1 | sed "s/^\([\"']\)\(.*\)\1\$/\2/g")
         if [ "$retval" ]; then
             echo $retval

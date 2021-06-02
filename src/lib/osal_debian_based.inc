@@ -147,7 +147,7 @@ osal_php_package_prefix() {
 
 # multiphp_fpm_isinstalled 7.3 = (1|null)
 osal_php_fpm_isinstalled() {
-    [ -f "/etc/init.d/php$1-fpm" ] && echo 1
+    [ -s "/etc/init.d/php$1-fpm" ] && echo 1
 }
 
 # multiphp_etc_folder '7.3' = /etc/php/7.3

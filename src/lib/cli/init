@@ -25,7 +25,7 @@ nopanel_init() {
     # Initialize missing configuration files to empty json
     for FILE in nopanel.json modules.json users.json web-domains.json mail-domains.json databases.json
     do
-        [[ -f "$NOPANEL_ETC/$FILE" ]] || echo '{}' > "$NOPANEL_ETC/$FILE"
+        [[ -s "$NOPANEL_ETC/$FILE" ]] || echo '{}' > "$NOPANEL_ETC/$FILE"
         chmod 0660 $NOPANEL_ETC/$FILE
         chown root:nopanel-admins $NOPANEL_ETC/$FILE
     done
