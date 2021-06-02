@@ -1,6 +1,7 @@
 #!/bin/bash
 
 nopanel_web_domain_commit() {
+    nplib_command_echo "= Aplying web domain configuration changes"
     if [[ "$param_help" ]]; then
         nopanel web help
         return
@@ -10,8 +11,6 @@ nopanel_web_domain_commit() {
     nplib_require $NOPANEL_LIB/module.inc
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
-
-    nplib_command_echo "= Aplying web domain configuration changes"
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user
