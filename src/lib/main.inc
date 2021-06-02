@@ -3,8 +3,9 @@
 # © Ernesto N. Carrea / https://www.nopanel.cc
 
 nplib_command_echo() {
-    if nplib_is_false $param_interactive && [[ ! "$param_output" ]]; then
-        echo "$@"
+    if [[ ! "$param_output" ]]; then
+        [ $NOPANEL_RECURSION_LEVEL -gt 1 ] && printf '%*s' $NOPANEL_RECURSION_LEVEL
+        echo -e "$@"
     fi
     nplib_command_log "$@"
 }
@@ -32,14 +33,14 @@ nplib_command_output() {
         TERM_COLOR_RED='\033[0;31m'
         TERM_COLOR_GREEN='\033[0;32m'
         if [[ "$1" == "ok" ]]; then
-            echo -e "[ ${TERM_COLOR_GREEN}ok${TERM_COLOR_NONE} ]: $2"
+            nplib_command_echo "[ ${TERM_COLOR_GREEN}ok${TERM_COLOR_NONE} ]: $2"
         elif [[ "$1" == "error" ]]; then
-            echo -e "[ ${TERM_COLOR_RED}error${TERM_COLOR_NONE} ]: $2"
+            nplib_command_echo "[ ${TERM_COLOR_RED}error${TERM_COLOR_NONE} ]: $2"
         else
-            echo "[ $1 ]: $2"
+            nplib_command_echo "[ $1 ]: $2"
         fi
         if [[ "$3" ]]; then
-            echo -e $3
+            nplib_command_echo -e $3
         fi
     fi
 

@@ -35,10 +35,14 @@ NOPANEL_HOME=/home
 
 source $NOPANEL_LIB/osal.inc
 source $NOPANEL_LIB/main.inc
+NOPANEL_RECURSION_LEVEL=0
 
 nopanel() {
+    ((NOPANEL_RECURSION_LEVEL+=1))
+
     if [[ -z "$@" ]]; then
-        echo "noPanel: command missing. Try '${0} help' for more information."
+        nplib_command_output 'error' "noPanel: command missing. Try '${0} help' for more information."
+        ((NOPANEL_RECURSION_LEVEL-=1))
         return 1
     fi
 
@@ -66,7 +70,7 @@ nopanel() {
         fi
 
         if [ "$cmd_type" = 'not-found' ]; then
-            echo "Unrecognized command: $@ (was ok until '$cmd_file')"
+            nplib_command_output 'error' "Unrecognized command: $@ (was ok until '$cmd_file')"
         elif [ "$cmd_type" = 'include' ]; then
             nplib_require $cmd_file
             nopanel_$cmd_name $@
@@ -81,9 +85,12 @@ nopanel() {
             $cmd_file $@
         fi
     else
-        echo "Unrecognized command: $@"
+        nplib_command_output 'error' "Unrecognized command: $@"
+        ((NOPANEL_RECURSION_LEVEL-=1))
         return 1
     fi
+
+    ((NOPANEL_RECURSION_LEVEL-=1))
 }
 
 # If this files is _not_ being sourced, act immediately

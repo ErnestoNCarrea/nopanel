@@ -11,8 +11,10 @@ nopanel_web_domain_commit() {
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
 
+    nplib_command_echo "Aplying web domain configuration changes"
+
     if [[ "$param_user" ]]; then
-        nopanel_web_domain_rebuild_user "$param_user"
+        nopanel_web_domain_rebuild_user
     else
         # Rebuild all users
         for param_user in $(nplib_users_list); do
