@@ -2,10 +2,22 @@
 # noPanel library (nplib) misc functions
 # © Ernesto N. Carrea / https://www.nopanel.cc
 
+TERM_COLOR_BOLD='\033[1m'
+TERM_COLOR_NONE='\033[0m'
+TERM_COLOR_RED='\033[0;31m'
+TERM_COLOR_GREEN='\033[0;32m'
+
 nplib_command_echo() {
     if [[ ! "$param_output" ]]; then
-        [ $NOPANEL_RECURSION_LEVEL -gt 1 ] && printf '%*s' $NOPANEL_RECURSION_LEVEL
-        echo -e "$@"
+        if [ $NOPANEL_RECURSION_LEVEL -gt 1 ]; then
+            local INDENT=$(( (NOPANEL_RECURSION_LEVEL - 1) * 3 ))
+            printf '%*s' $INDENT
+        fi
+        if [[ "$@" = '='* ]]; then
+            echo -e "${TERM_COLOR_BOLD}$@${TERM_COLOR_NONE}"
+        else
+            echo -e "$@"
+        fi
     fi
     nplib_command_log "$@"
 }
@@ -29,9 +41,6 @@ nplib_command_output() {
             echo $3
         fi
     else
-        TERM_COLOR_NONE='\033[0m'
-        TERM_COLOR_RED='\033[0;31m'
-        TERM_COLOR_GREEN='\033[0;32m'
         if [[ "$1" == "ok" ]]; then
             nplib_command_echo "[ ${TERM_COLOR_GREEN}ok${TERM_COLOR_NONE} ]: $2"
         elif [[ "$1" == "error" ]]; then

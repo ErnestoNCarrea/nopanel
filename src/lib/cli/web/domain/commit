@@ -11,7 +11,7 @@ nopanel_web_domain_commit() {
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
 
-    nplib_command_echo "Aplying web domain configuration changes"
+    nplib_command_echo "= Aplying web domain configuration changes"
 
     if [[ "$param_user" ]]; then
         nopanel_web_domain_rebuild_user
@@ -23,15 +23,15 @@ nopanel_web_domain_commit() {
         unset param_user
     fi
 
-    nplib_command_output 'ok' 'Web domain configuration applied'
-
     if [[ "$param_reload" ]]; then
         nopanel module apache reload
     fi
+
+    nplib_command_output 'ok' 'Web domain configuration applied'
 }
 
 nopanel_web_domain_rebuild_user() {
-    nplib_command_echo " - Processing user $param_user..."
+    nplib_command_echo "- Processing user $param_user..."
     if [[ "$param_domain" ]]; then
         nopanel_web_domain_rebuild_user_domain
     else
@@ -52,7 +52,7 @@ nopanel_web_domain_rebuild_user_domain() {
     elif ! nplib_is_true $DOMAIN_WEB; then
         return
     fi
-    nplib_command_echo "  - Configuring web server for domain $param_domain..."
+    nplib_command_echo "- Configuring web server for domain $param_domain..."
 
     # Create and populate default folders
     local USER_HOME="$NOPANEL_HOME/$param_user"
