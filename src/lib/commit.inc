@@ -11,7 +11,11 @@ nplib_commits_save() {
 # nplib_commits_get_committed_filename 'file'
 nplib_commits_get_committed_filename() {
     local FILENAME=$(basename $1)
-    echo $NOPANEL_STATE/committed/${param_user}_${FILENAME}
+    if [[ "$1" == '/etc/nopanel/users.json' ]]; then
+        echo $NOPANEL_STATE/committed/${FILENAME}
+    else
+        echo $NOPANEL_STATE/committed/${param_user}_${FILENAME}
+    fi
 }
 
 # get keys of elements deleted since last commit

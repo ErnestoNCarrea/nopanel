@@ -1,6 +1,7 @@
 #!/bin/bash
 
 nopanel_user_remove() {
+    nplib_command_echo "= Remove user"
     if [[ "$param_help" ]]; then
         nopanel user help
         return
@@ -11,18 +12,23 @@ nopanel_user_remove() {
         return
     fi
 
+    nplib_require $NOPANEL_LIB/user.inc
+
+    if ! nplib_users_exists "$param_user"; then
+        nplib_command_output 'error' 'User does not exist'
+        return
+    fi
+
     if [[ ! "$param_force" ]]; then
         nplib_command_output 'error' 'Refusing to remove user unless --force is used'
         return
     fi
 
-    nplib_require $NOPANEL_LIB/user.inc
-
-    nplib_users_set "$param_user" 'delete' 'yes'
-
-    nplib_command_output 'ok' 'User removed'
+    nplib_users_delete $param_user
 
     if [[ "$param_commit" ]]; then
         nopanel user commit
     fi
+
+    nplib_command_output 'ok' 'User removed'
 }

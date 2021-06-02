@@ -12,12 +12,18 @@ nopanel_user_add() {
         nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
+
+    nplib_require $NOPANEL_LIB/user.inc
+
+    if nplib_users_exists "$param_user"; then
+        nplib_command_output 'error' 'User already exists'
+        return
+    fi
+
     if [[ ! "$param_password" ]]; then
         nplib_command_output 'error' 'User password not specified (--password)'
         return
     fi
-
-    nplib_require $NOPANEL_LIB/user.inc
 
     # Create user
     nplib_users_set "$param_user" 'name' "$param_user"

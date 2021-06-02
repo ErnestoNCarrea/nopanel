@@ -30,13 +30,10 @@ nopanel_user_mod() {
     [[ "$param_email" ]] && nplib_users_set "$param_user" 'email' "$param_email"
     [[ "$param_shell" ]] && nplib_users_set "$param_user" 'shell' "$param_shell"
     [[ "$param_admin" ]] && nplib_users_set "$param_user" 'admin' $(nplib_bool_value $param_admin)
-
-    # Commit changes to system
-    nopanel user commit
     
     # change password if specified
     if [[ "$param_password" ]]; then
-        nplib_command_echo ' - Setting password'
+        nplib_command_echo '- Setting password'
         echo "$param_user:$param_password" | /usr/sbin/chpasswd
     fi
 

@@ -12,7 +12,7 @@ nplib_users_get() {
 
 # nplib_users_exists 'username'
 nplib_users_exists() {
-    [[ $(osal_json_get "$1" 'name') ]]
+    [[ $(nplib_users_get $1 'name') ]]
 }
 
 # nplib_users_list
