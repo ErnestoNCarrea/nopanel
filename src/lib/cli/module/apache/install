@@ -1,19 +1,19 @@
 #!/bin/bash
 
 nopanel_module_apache_install() {
+    nplib_command_echo "= Install noPanel Apache module"
+
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/module.inc
-
-    nplib_command_echo "Installing noPanel Apache module"
 
     osal_service_stop $OSAL_SERVICE_APACHE > /dev/null 2>&1
     nplib_config_backup 'apache-install' $OSAL_PATH_APACHE_CONF $OSAL_PATH_APACHE_CONF_D
 
-    nplib_command_echo " - Installing Apache package(s)"
+    nplib_command_echo "- Installing Apache package(s)"
     osal_package_preinstall > /dev/null 2>&1
     osal_package_install $OSAL_PKG_APACHE $OSAL_PKG_APACHE_EXTRA > /dev/null 2>&1
 
-    nplib_command_echo " - Creating configuration files and directories"
+    nplib_command_echo "- Creating configuration files and directories"
     mkdir -p $OSAL_PATH_APACHE_CONF_D/domains
     mkdir -p /var/log/$OSAL_PKG_APACHE/domains
     chmod 0770 /var/log/$OSAL_PKG_APACHE
@@ -49,7 +49,7 @@ nopanel_module_apache_install() {
     nplib_modules_set 'web' 'server' 'apache'
     nplib_modules_set 'web' 'logs' "/var/log/$OSAL_PKG_APACHE"
 
-    nplib_command_echo " - Enabling and starting Apache service"
+    nplib_command_echo "- Enabling and starting Apache service"
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
     osal_service_start $OSAL_SERVICE_APACHE > /dev/null 2>&1
         
