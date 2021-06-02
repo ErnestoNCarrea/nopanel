@@ -20,7 +20,7 @@ nopanel_module_apache_install() {
     chown root:nopanel-admins /var/log/$OSAL_PKG_APACHE
     touch /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
     chmod 660 /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
-    chown root:nopanel-admins /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
+    chown root:nopanel-admins /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log /var/log/$OSAL_PKG_APACHE/domains
     chmod 751 /var/log/$OSAL_PKG_APACHE/domains
 
     # Enable/disable required modules
