@@ -72,19 +72,20 @@ nopanel_user_commit_update() {
 
     # Default shell
     if ! nplib_is_false "$USER_LOGIN"; then
-        /usr/sbin/usermod --shell "/usr/bin/bash" "$param_user" > /dev/null 2>&1
-        if [[ "$USER_LOGIN" == 'sftp' ]]; then
+        if [[ "$USER_LOGIN" = 'sftp' ]]; then
             # Add to the sftp group, to allow only SFTP
-            /usr/sbin/usermod -a -G nopanel-sftp "$param_user" > /dev/null 2>&1
+            osal_user_add_group "$param_user" 'nopanel-sftp'
+            osal_user_set_shell "$param_user" '/usr/sbin/nologin'
         else
             # Remove from the sftp group, to allow SSH
-            /usr/bin/gpasswd -d "$param_user" nopanel-sftp > /dev/null 2>&1
+            osal_user_del_group "$param_user" 'nopanel-sftp'
+            osal_user_set_shell "$param_user" '/usr/bin/bash'
         fi
     else
-        # Disable login
-        /usr/sbin/usermod --shell "/usr/sbin/nologin" "$param_user" > /dev/null 2>&1
+        # disable login and remove from the sftp group
+        osal_user_set_shell "$param_user" '/usr/sbin/nologin'
+        osal_user_del_group "$param_user" 'nopanel-sftp'
     fi
-    
 
     nplib_command_echo ' - Setting up home directory and permissions'
     
