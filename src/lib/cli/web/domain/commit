@@ -146,7 +146,7 @@ nopanel_web_domain_rebuild_user_domain() {
 
                 # run getssl to obtain the actual cert
                 nplib_command_echo "- Getting certificate"
-                getssl $param_domain
+                $NOPANEL_LIB/getssl $param_domain
             fi
 
             if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ] && [ -f "$SSL_CHAIN" ]; then
