@@ -121,7 +121,7 @@ osal_json_get() {
 osal_kv_write() {
     touch "$1"
     osal_kv_delete "$1" "$2"
-    echo "$2='$3'" >> "$1"
+    echo "$2=$3" >> "$1"
 }
 
 # Reads a value from a key-value file. # Exits successfully if it does.
