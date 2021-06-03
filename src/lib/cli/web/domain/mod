@@ -16,6 +16,17 @@ nopanel_web_domain_mod() {
         nplib_command_output 'error' 'Domain name not specified (--domain)'
         return
     fi
+    if [[ "$param_ssl" ]]; then
+        case "$param_ssl" in
+            'le'|'self'|'no')
+                : # ok
+                ;;
+            *)
+                nplib_command_output 'error' "Invalid value for --ssl (must be 'le', 'self' or 'no')"
+                return 1
+                ;;
+        esac
+    fi
 
     nplib_require $NOPANEL_LIB/domain.inc
 
@@ -26,8 +37,8 @@ nopanel_web_domain_mod() {
 
     # Update noPanel DB
     nplib_domains_set "$param_domain" 'web' 'true'
-    [[ $param_aliases ]] && nplib_domains_set "$param_domain" 'web_aliases' "$param_aliases"
-
+    [[ "$param_aliases" ]] && nplib_domains_set "$param_domain" 'web_aliases' "$param_aliases"
+    [[ "$param_ssl" ]] && nplib_domains_set "$param_domain" 'web_ssl' "$param_ssl"
 
     if nplib_is_false $param_php; then
         nplib_domains_set "$param_domain" 'web_php' 'false'

@@ -74,12 +74,14 @@ nopanel_web_domain_rebuild_user_domain() {
 
     local DOMAIN_ALIASES=$(nplib_domains_get "$param_domain" 'web_aliases')
     local DOMAIN_PHP=$(nplib_domains_get "$param_domain" 'web_php')
-    local DOMAIN_IDN=$(nplib_domain_idn $param_domain)
-    local DOMAIN_ALIASES_IDN=$(nplib_domain_aliases_idn $DOMAIN_ALIASES)
+    local DOMAIN_SSL=$(nplib_domains_get "$param_domain" 'web_ssl')
     local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
-    [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
     local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
     local WEB_SERVER=$(nplib_modules_get 'web' 'server')
+
+    local DOMAIN_IDN=$(nplib_domain_idn $param_domain)
+    local DOMAIN_ALIASES_IDN=$(nplib_domain_aliases_idn $DOMAIN_ALIASES)
+    [[ "$USER_EMAIL" ]] || USER_EMAIL="webmaster@$param_domain"
     local APACHE_DEFINES='Define NOPANEL'
 
     if [[ "$DOMAIN_ALIASES" ]]; then
@@ -97,6 +99,7 @@ nopanel_web_domain_rebuild_user_domain() {
     fi
 
     if [[ ! -s "$DOMAIN_DOCROOT/.nopanel" ]]; then
+        nplib_command_echo "- Folder skeleton"
         # Looks empty
         pushd $NOPANEL_DATA/web/skel > /dev/null
         for FILE in $(find ./ -type f); do
@@ -109,6 +112,57 @@ nopanel_web_domain_rebuild_user_domain() {
         chown $param_user:$param_user "$DOMAIN_DOCROOT/.nopanel"
     fi
 
+    case "$DOMAIN_SSL" in
+        'le')
+            local SSL_CERT="/etc/nopanel/pki/${param_domain}.crt"
+            local SSL_KEY="/etc/nopanel/pki/${param_domain}.key"
+            local SSL_CHAIN="/etc/nopanel/pki/${param_domain}.ca"
+
+            if [ ! -f "$SSL_CERT" ]; then
+                nplib_command_echo "- Setting up SSL with Let's Encrypt"
+                local GETSSL_DOMAIN_CONFIG=~/.getssl/$param_domain/getssl.cfg
+                if [[ ! -f "$GETSSL_DOMAIN_CONFIG" ]]; then
+                    local GETSSL_USER_CONFIG=~/.getssl/getssl.cfg
+                    # create and set getssl domain config if it doesn't exist
+                    $NOPANEL_LIB/getssl --create $param_domain
+                    # set user email
+                    sed -i "s/^#ACCOUNT_EMAIL=\"me@example.com\"/ACCOUNT_EMAIL=\"$USER_EMAIL\"/" $GETSSL_USER_CONFIG
+                    # set production mode
+                    sed -i "s/^CA=\"https://acme-staging-v02/#CA=\"https://acme-staging-v02/" $GETSSL_USER_CONFIG
+                    sed -i "s/^#CA=\"https://acme-v02/CA=\"https://acme-v02/" $GETSSL_USER_CONFIG
+                fi
+
+                # set getssl domain config if it doesn't exist
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'USE_SINGLE_ACL' '"false"'
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'ACL' '(''/var/www/html/.well-known/acme-challenge'')'
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_CERT_LOCATION' "/etc/nopanel/pki/${param_domain}.crt"
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_KEY_LOCATION' "/etc/nopanel/pki/${param_domain}.key"
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'CA_CERT_LOCATION' "/etc/nopanel/pki/${param_domain}.ca"
+                if [[ "$param_aliases" ]]; then
+                    osal_kv_write $GETSSL_DOMAIN_CONFIG 'SANS' "$param_aliases"
+                else
+                    osal_kv_delete $GETSSL_DOMAIN_CONFIG 'SANS'
+                fi
+
+                # run getssl to obtain the actual cert
+                nplib_command_echo "- Getting certificate"
+                getssl $param_domain
+            fi
+
+            if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ] && [ -f "$SSL_CHAIN" ]; then
+                APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_SSL"
+            fi
+            ;;
+        'self')
+            : # TODO
+            ;;
+        'no')
+            nplib_safe_rm "~/.getssl/$param_domain"
+            :
+            ;;
+    esac
+
+    nplib_command_echo "- Setup logs and permissions"
     # Setup logs
     touch $WEB_LOGS/domains/$param_domain.bytes \
         $WEB_LOGS/domains/$param_domain.log \
@@ -163,6 +217,9 @@ nopanel_web_domain_commit_install_file() {
             -e "s|%NOPANEL_PHP_FPM%|$PHP_FPM|g" \
             -e "s|%NOPANEL_PHP_FPM_SOCK%|$PHP_FPM_SOCK|g" \
             -e "s|%NOPANEL_PHP_FPM_FGCI%|$PHP_FPM_FGCI|g" \
+            -e "s|%NOPANEL_SSL_CERT%|$SSL_CERT|g" \
+            -e "s|%NOPANEL_SSL_KEY%|$SSL_KEY|g" \
+            -e "s|%NOPANEL_SSL_CHAIN%|$SSL_CHAIN|g" \
         > $DST_FILE
     fi
 }

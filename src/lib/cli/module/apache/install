@@ -49,6 +49,8 @@ nopanel_module_apache_install() {
     nplib_modules_set 'web' 'server' 'apache'
     nplib_modules_set 'web' 'logs' "/var/log/$OSAL_PKG_APACHE"
 
+    mkdir -p /var/www/html/.well-known/acme-challenge
+
     nplib_command_echo "- Enabling and starting Apache service"
     osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
     osal_service_start $OSAL_SERVICE_APACHE > /dev/null 2>&1

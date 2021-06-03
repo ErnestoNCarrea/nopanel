@@ -6,6 +6,7 @@ nopanel [--output json|plain] [--interactive [yes|no]]
 
 [n]     ver
 [id]    init
+[Ri]    commit
 
 [n]     module list
 
@@ -16,11 +17,14 @@ nopanel [--output json|plain] [--interactive [yes|no]]
 [Rid]   module mariadb wipe --force
 
 [n]     user list
-[c]     user add --user USERNAME --password PASSWORD [--email EMAIL] [--login ssh|sftp|no] [--fullname FULL_NAME] [--admin [yes|no]] [--force]
-[ic]    user mod --user USERNAME [--password PASSWORD] [--email EMAIL] [--login ssh|sftp|no] [--fullname FULL_NAME] [--admin [yes|no]]
+[c]     user add --user USERNAME --password PASSWORD [--email EMAIL] [--login ssh|sftp|no] \
+            [--fullname FULL_NAME] [--admin [yes|no]] [--ssl le|custom|self|no]
+[ic]    user mod --user USERNAME [--password PASSWORD] [--email EMAIL] [--login ssh|sftp|no] \
+            [--fullname FULL_NAME] [--admin [yes|no]] [--ssl le|custom|self|no]
 [c]     user remove --user USERNAME --force [--delete [--no-backup]]
 [Ri]    user commit [--user USER]
 
+[Ri]    web commit
 [n]     web domain list --user USER
 [c]     web domain add --user USER --domain DOMAIN [--aliases ALIASES] [--php VERSION|no]
 [ic]    web domain mod --user USER --domain DOMAIN [--aliases ALIASES] [--php VERSION|no]
