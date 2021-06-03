@@ -89,8 +89,6 @@ nopanel_user_commit_update() {
     nplib_command_echo ' - Setting up home directory and permissions'
     
     mkdir -p $USER_HOME
-    chown root:root $USER_HOME
-    chmod 0751 $USER_HOME
 
     # Add membership to nopanel-users group to non-admin users
     if [ "$param_user" = "admin" ]; then
@@ -100,6 +98,8 @@ nopanel_user_commit_update() {
         setfacl -m "u:$param_user:r-x" "$USER_HOME" > /dev/null 2>&1
     fi
     setfacl -m "g:nopanel-users:---" "$USER_HOME" > /dev/null 2>&1
+    chown root:root $USER_HOME
+    chmod 0751 $USER_HOME
 
     # Create default writeable folders
     nopanel_user_commit_create_owned_folder \
