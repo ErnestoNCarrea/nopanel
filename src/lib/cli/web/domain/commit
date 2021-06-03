@@ -119,9 +119,9 @@ nopanel_web_domain_rebuild_user_domain() {
 
     case "$DOMAIN_SSL" in
         'le')
-            SSL_CERT="/etc/nopanel/pki/${param_domain}.crt"
-            SSL_KEY="/etc/nopanel/pki/${param_domain}.key"
-            SSL_CHAIN="/etc/nopanel/pki/${param_domain}.ca"
+            SSL_CERT="/etc/nopanel/pki/letsencrypt/${param_domain}.crt"
+            SSL_KEY="/etc/nopanel/pki/letsencrypt/${param_domain}.key"
+            SSL_CHAIN="/etc/nopanel/pki/letsencrypt/${param_domain}.ca"
 
             nplib_command_echo "- Setting up SSL with Let's Encrypt"
             if [[ ! -s "$SSL_CERT" ]]; then
