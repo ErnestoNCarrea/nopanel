@@ -45,7 +45,6 @@ nopanel_user_commit_update() {
     local USER_FULLNAME=$(nplib_users_get "$param_user" 'fullname')
     local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
     local USER_LOGIN=$(nplib_users_get "$param_user" 'login')
-    local USER_SFTP=$(nplib_users_get "$param_user" 'sftp')
     local USER_ADMIN=$(nplib_users_get "$param_user" 'admin')
     local USER_PASSWORD=$(nplib_users_get "$param_user" 'password')
     local useradd_params="--groups nopanel-users "
@@ -72,16 +71,20 @@ nopanel_user_commit_update() {
     fi
 
     # Default shell
-    if nplib_is_true "$USER_LOGIN"; then
+    if ! nplib_is_false "$USER_LOGIN"; then
         /usr/sbin/usermod --shell "/usr/bin/bash" "$param_user" > /dev/null 2>&1
+        if [[ "$USER_LOGIN" == 'sftp' ]]; then
+            # Add to the sftp group, to allow only SFTP
+            /usr/sbin/usermod -a -G nopanel-sftp "$param_user" > /dev/null 2>&1
+        else
+            # Remove from the sftp group, to allow SSH
+            /usr/bin/gpasswd -d "$param_user" nopanel-sftp > /dev/null 2>&1
+        fi
     else
+        # Disable login
         /usr/sbin/usermod --shell "/usr/sbin/nologin" "$param_user" > /dev/null 2>&1
     fi
-    if nplib_is_true "$USER_SFTP"; then
-        /usr/sbin/usermod -a -G nopanel-sftp "$param_user"
-    else
-        /usr/bin/gpasswd -d "$param_user" nopanel-sftp
-    fi
+    
 
     nplib_command_echo ' - Setting up home directory and permissions'
     
