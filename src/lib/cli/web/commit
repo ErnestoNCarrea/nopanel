@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [[ -z "$NOPANEL_VERSION" ]]; then
+    echo "This file should not be called without the proper environment. Use nopanel CLI instead."
+    exit 1
+fi
+
+nopanel_web_commit() {
+    nplib_auto_elevate
+    nplib_command_echo "= Applying web domain changes"
+
+    nopanel web domain commit
+
+    nplib_command_output 'ok' 'Web domain changes applied'
+}
+
+# If this files is _not_ being sourced, act immediately
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+    npctl $@
+fi
