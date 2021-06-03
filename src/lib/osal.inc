@@ -219,3 +219,18 @@ osal_gen_pass() {
     done
     echo "$PASS"
 }
+
+# osal_user_add_group 'user' 'group'
+osal_user_add_group() {
+    /usr/sbin/usermod -a -G "$2" "$1" > /dev/null 2>&1
+}
+
+# osal_user_del_group 'user' 'group'
+osal_user_del_group() {
+    /usr/bin/gpasswd -d "$param_user" nopanel-sftp > /dev/null 2>&1
+}
+
+# osal_user_del_group 'user' 'shell'
+osal_user_set_shell() {
+    /usr/sbin/usermod --shell "$2" "$1" > /dev/null 2>&1
+}
