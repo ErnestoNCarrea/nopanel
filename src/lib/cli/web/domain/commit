@@ -140,7 +140,7 @@ nopanel_web_domain_rebuild_user_domain() {
 
                 # set getssl domain config if it doesn't exist
                 osal_kv_write $GETSSL_DOMAIN_CONFIG 'USE_SINGLE_ACL' '"false"'
-                osal_kv_write $GETSSL_DOMAIN_CONFIG 'ACL' '(''/var/www/html/.well-known/acme-challenge'')'
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'ACL' '\(''/var/www/html/.well-known/acme-challenge''\)'
                 osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_CERT_LOCATION' "$SSL_CERT"
                 osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_KEY_LOCATION' "$SSL_KEY"
                 osal_kv_write $GETSSL_DOMAIN_CONFIG 'CA_CERT_LOCATION' "$SSL_CHAIN"
