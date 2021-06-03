@@ -86,8 +86,8 @@ nopanel_user_commit_update() {
     nplib_command_echo ' - Setting up home directory and permissions'
     
     mkdir -p $USER_HOME
-    chown $param_user:$param_user $USER_HOME
-    chmod 0775 $USER_HOME
+    chown root:root $USER_HOME
+    chmod 0751 $USER_HOME
 
     # Add membership to nopanel-users group to non-admin users
     if [ "$param_user" = "admin" ]; then
