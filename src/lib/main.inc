@@ -186,7 +186,7 @@ nplib_check_user() {
         if [[ ! "$param_user" ]]; then
             param_user=$USER
         fi
-    elif [ ! $param_user = $USER ]; then
+    elif [ ! "$param_user" = "$USER" ]; then
         # admin trying to impersonate another user, auto elevate
         nplib_auto_elevate
     fi
