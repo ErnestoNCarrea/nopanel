@@ -90,6 +90,7 @@ nplib_exit_on_failure() {
 }
 
 # Run arbitrary CLI commands with dropped privileges
+# nplib_user_exec 'user' 'command'
 nplib_user_exec() {
     local user=$1
     shift
