@@ -187,7 +187,7 @@ nplib_check_user() {
         if [[ ! "$param_user" ]]; then
             param_user=$USER
         fi
-    elif [ ! "$param_user" = "$USER" ]; then
+    elif [[ "$param_user" ]] && [ ! "$param_user" = "$USER" ]; then
         # admin trying to impersonate another user, auto elevate
         nplib_auto_elevate
     fi
@@ -204,6 +204,15 @@ nplib_auto_elevate() {
         nplib_elevate
     elif nplib_is_nopanel_admin; then
         nplib_command_output 'error' "You need to be root for that (try with sudo)"
+
+        if [ ${#FUNCNAME[@]} -gt 2 ]
+        then
+            echo "Call tree:"
+            for ((i=1;i<${#FUNCNAME[@]}-1;i++))
+            do
+            echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"
+            done
+        fi
         exit 1
     else
         nplib_command_output 'error' 'You are not allowed to use that command, ask your administrator'
