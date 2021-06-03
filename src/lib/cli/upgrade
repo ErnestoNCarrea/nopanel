@@ -9,6 +9,11 @@ nopanel_upgrade() {
     nplib_auto_elevate
     nplib_command_echo "Upgrading noPanel to version $NOPANEL_VERSION"
 
+    # get getssl to manage Let's Encrypt certificates
+    curl https://raw.githubusercontent.com/srvrco/getssl/master/getssl -o $NOPANEL_LIB/getssl
+    chmod a+x $NOPANEL_LIB/getssl
+
+    # update version
     osal_json_set "/etc/nopanel/nopanel.json" ".version=\"$NOPANEL_VERSION\""
 
     nplib_command_output 'ok' 'noPanel ready'
