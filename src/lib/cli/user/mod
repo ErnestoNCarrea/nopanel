@@ -39,7 +39,7 @@ nopanel_user_mod() {
     
     [[ "$param_fullname" ]] && nplib_users_set "$param_user" 'fullname' "$param_fullname"
     [[ "$param_email" ]] && nplib_users_set "$param_user" 'email' "$param_email"
-    [[ "$param_login" ]] && nplib_users_set "$param_user" 'login' $(nplib_bool_value "$param_login")
+    [[ "$param_login" ]] && nplib_users_set "$param_user" 'login' "$param_login"
     [[ "$param_admin" ]] && nplib_users_set "$param_user" 'admin' $(nplib_bool_value "$param_admin")
     [[ "$param_password" ]] && nplib_users_set "$param_user" 'password' "$param_password"
     
