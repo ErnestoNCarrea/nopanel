@@ -4,7 +4,7 @@ nopanel_module_apache_reload() {
     nplib_auto_elevate
     nplib_command_echo "= Reloading Apache web server"
 
-    apachectl -k graceful
+    systemctl reload $OSAL_SERVICE_APACHE
         
     nplib_command_output 'ok' 'Apache config reloaded'
 }
