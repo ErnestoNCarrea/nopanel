@@ -20,9 +20,7 @@ nopanel_user_mod() {
 
     if [[ "$param_login" ]]; then
         case "$param_login" in
-            'ssh')
-            'sftp')
-            'no')
+            'ssh'|'sftp'|'no')
                 :
                 ;;
             *)
