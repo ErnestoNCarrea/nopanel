@@ -34,7 +34,7 @@ nopanel_database_remove() {
 
     nplib_require $NOPANEL_LIB/database.inc
 
-    nplib_databases_set "$DB_FULLNAME" 'delete' 'yes'
+    nplib_databases_delete "$DB_FULLNAME"
 
     if [[ "$param_commit" ]]; then
         nopanel database commit

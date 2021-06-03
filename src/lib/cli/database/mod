@@ -28,7 +28,6 @@ nopanel_database_mod() {
     fi
 
     # Update noPanel DB
-    nplib_databases_set "$DB_FULLNAME" 'delete' 'no'
     [[ "$param_password" ]] && nplib_databases_set "$DB_FULLNAME" 'password' "$param_password"
 
     if [[ "$param_commit" ]]; then
