@@ -59,8 +59,13 @@ nopanel_web_domain_rebuild_user() {
 nopanel_web_domain_rebuild_user_domain() {
     local DOMAIN_WEB=$(nplib_domains_get "$param_domain" 'web')
 
+    if [ $DOMAIN_WEB = 'delete' ]; then
+        nopanel_web_domain_delete_user_domain
+        return
+    fi
     if ! nplib_is_true $DOMAIN_WEB; then
         nopanel_web_domain_delete_user_domain
+        return
     fi
     nplib_command_echo "- Configuring web domain $param_user/$param_domain"
 
@@ -114,12 +119,13 @@ nopanel_web_domain_rebuild_user_domain() {
 
     case "$DOMAIN_SSL" in
         'le')
-            local SSL_CERT="/etc/nopanel/pki/${param_domain}.crt"
-            local SSL_KEY="/etc/nopanel/pki/${param_domain}.key"
-            local SSL_CHAIN="/etc/nopanel/pki/${param_domain}.ca"
+            SSL_CERT="/etc/nopanel/pki/${param_domain}.crt"
+            SSL_KEY="/etc/nopanel/pki/${param_domain}.key"
+            SSL_CHAIN="/etc/nopanel/pki/${param_domain}.ca"
 
-            if [ ! -f "$SSL_CERT" ]; then
-                nplib_command_echo "- Setting up SSL with Let's Encrypt"
+            nplib_command_echo "- Setting up SSL with Let's Encrypt"
+            if [[ ! -s "$SSL_CERT" ]]; then
+                nplib_command_echo "- Getting the certificate from Let's Encrypt"
                 local GETSSL_DOMAIN_CONFIG=~/.getssl/$param_domain/getssl.cfg
                 if [[ ! -f "$GETSSL_DOMAIN_CONFIG" ]]; then
                     local GETSSL_USER_CONFIG=~/.getssl/getssl.cfg
@@ -135,9 +141,9 @@ nopanel_web_domain_rebuild_user_domain() {
                 # set getssl domain config if it doesn't exist
                 osal_kv_write $GETSSL_DOMAIN_CONFIG 'USE_SINGLE_ACL' '"false"'
                 osal_kv_write $GETSSL_DOMAIN_CONFIG 'ACL' '(''/var/www/html/.well-known/acme-challenge'')'
-                osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_CERT_LOCATION' "/etc/nopanel/pki/${param_domain}.crt"
-                osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_KEY_LOCATION' "/etc/nopanel/pki/${param_domain}.key"
-                osal_kv_write $GETSSL_DOMAIN_CONFIG 'CA_CERT_LOCATION' "/etc/nopanel/pki/${param_domain}.ca"
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_CERT_LOCATION' "$SSL_CERT"
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'DOMAIN_KEY_LOCATION' "$SSL_KEY"
+                osal_kv_write $GETSSL_DOMAIN_CONFIG 'CA_CERT_LOCATION' "$SSL_CHAIN"
                 if [[ "$param_aliases" ]]; then
                     osal_kv_write $GETSSL_DOMAIN_CONFIG 'SANS' "$param_aliases"
                 else
@@ -151,14 +157,41 @@ nopanel_web_domain_rebuild_user_domain() {
 
             if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ] && [ -f "$SSL_CHAIN" ]; then
                 APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_SSL"
+                APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_SSL_CHAIN"
             fi
             ;;
         'self')
-            : # TODO
+            mkdir -p /etc/nopanel/pki/self
+            SSL_CERT="/etc/nopanel/pki/self/${param_domain}.crt"
+            SSL_KEY="/etc/nopanel/pki/self/${param_domain}.key"
+            SSL_CHAIN=""
+            local NOPANEL_HOSTNAME=$(hostname --fqdn)
+
+            nplib_command_echo "- Setting up SSL with self-signed certificate"
+            if [ ! -s "$SSL_CERT" ]; then
+                # generate self-signed certificate
+                nplib_command_echo "- Creating the self-signed certificate"
+                openssl req -x509 -nodes -days 7300 -newkey rsa:2048 \
+                    -keyout $SSL_KEY \
+                    -out $SSL_CERT \
+                    -subj "/C=AR/ST=Tierra del Fuego/L=Ushuaia/O=noPanel/OU=$param_user/CN=$NOPANEL_HOSTNAME"
+            fi
+
+            if [[ -f "$SSL_CERT" ]] && [[ -f "$SSL_KEY" ]]; then
+                APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_SSL"
+            fi
             ;;
         'no')
+            SSL_CERT=""
+            SSL_KEY=""
+            SSL_CHAIN=""
             nplib_safe_rm "~/.getssl/$param_domain"
             :
+            ;;
+        *)
+            SSL_CERT=""
+            SSL_KEY=""
+            SSL_CHAIN=""
             ;;
     esac
 
@@ -177,20 +210,28 @@ nopanel_web_domain_rebuild_user_domain() {
 
     #mkdir -p $USER_HOME/nopanel/web
     #chown -R $param_user:$param_user "$USER_HOME/nopanel/web"
-    local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
-    nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/apache/domain.conf" $APACHE_CONF_FILE 'overwrite'
+    local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}_domain_${param_domain}.conf
+    local APACHE_SSL_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}_domain_${param_domain}.ssl.conf
+    nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/apache/domain.http.conf" $APACHE_CONF_FILE 'overwrite'
+    if [[ "$SSL_CERT" ]]; then
+        nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/apache/domain.https.conf" $APACHE_SSL_CONF_FILE 'overwrite'
+    else
+        nplib_safe_rm $APACHE_SSL_CONF_FILE
+    fi
 
     # set a link to the apache config in the user directory
     # ln -s -f $APACHE_CONF_FILE "$USER_HOME/nopanel/web/apache-$param_domain.conf"
 }
 
 nopanel_web_domain_delete_user_domain() {
-    local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}-domain_${param_domain}.conf
+    local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}_domain_${param_domain}.conf
+    local APACHE_SSL_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}_domain_${param_domain}.ssl.conf
     if [[ -f $APACHE_CONF_FILE ]]; then
-        nplib_command_echo "  - Deleting web domain $param_domain"
+        nplib_command_echo "- Deleting web domain $param_domain"
         local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
-        nplib_safe_rm $WEB_LOGS/domains/$param_domain $APACHE_CONF_FILE
+        nplib_safe_rm $WEB_LOGS/domains/$param_domain $APACHE_CONF_FILE $APACHE_SSL_CONF_FILE
     fi
+    nplib_domains_set "$param_domain" 'web' 'no'
 }
 
 # copy a file to a destination, replacing template vars
