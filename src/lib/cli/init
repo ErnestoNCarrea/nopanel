@@ -68,7 +68,8 @@ ChrootDirectory %h
 EOF
     fi
 
-    osal_json_set "/etc/nopanel/nopanel.json" ".version=\"$NOPANEL_VERSION\""
+    # run upgrade script, to ugdate version
+    nopanel upgrade
 
     nplib_command_output 'ok' 'noPanel ready'
 }

@@ -14,6 +14,7 @@ Requires:       tar
 Requires:       gzip
 Requires:       jq
 Requires:       libidn
+Requires:       curl
 Provides:       nopanel-cli = %{version}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch:      noarch
