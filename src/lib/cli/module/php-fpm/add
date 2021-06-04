@@ -41,9 +41,21 @@ nopanel_module_php-fpm_add() {
 
     local php_prefix=$(osal_php_package_prefix $param_version)
 
+    PACKAGES="$php_prefix-bcmath $php_prefix-cli $php_prefix-curl
+        $php_prefix-gd $php_prefix-intl $php_prefix-mbstring 
+        $php_prefix-soap $php_prefix-xml $php_prefix-zip
+        $php_prefix-bz2 $php_prefix-pspell $php_prefix-imagick $php_prefix-pgsql
+        $php_prefix-imap $php_prefix-ldap $php_prefix-opcache"
+
+    if [ "$OS_BASE" = 'rhel' ]; then
+        PACKAGES="$PACKAGES $php_prefix-fpm $php_prefix-apcu $php_prefix-mysqlnd"
+    else
+        PACKAGES="$PACKAGES php-apcu $php_prefix-mysql"
+    fi
+
     # Install php packages
     osal_package_preinstall > /dev/null 2>&1
-    osal_package_install $php_prefix-fpm > /dev/null 2>&1
+    osal_package_install $PACKAGES > /dev/null 2>&1
 
     WEB_SERVER=$(nplib_modules_get 'web' 'server')
     nplib_command_echo " - Configuring for $WEB_SERVER"

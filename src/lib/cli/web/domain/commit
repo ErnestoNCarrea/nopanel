@@ -71,6 +71,7 @@ nopanel_web_domain_rebuild_user_domain() {
 
     # Create and populate default folders
     local USER_HOME="$NOPANEL_HOME/$param_user"
+    local USER_TMP="$NOPANEL_HOME/$param_user/tmp"
     local DOMAIN_FOLDER=$USER_HOME/web/$param_domain
     local DOMAIN_DOCROOT=$DOMAIN_FOLDER/public_html
     mkdir -p $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
@@ -99,9 +100,13 @@ nopanel_web_domain_rebuild_user_domain() {
     if ! nplib_is_false $DOMAIN_PHP; then
         APACHE_DEFINES="$APACHE_DEFINES\n    Define NOPANEL_PHP_FPM"
         local PHP_FPM=$DOMAIN_PHP
-        local PHP_FPM_SOCK=$(osal_php_fpm_sock $DOMAIN_PHP)
+        local PHP_FPM_SOCK_STD=$(osal_php_fpm_sock $DOMAIN_PHP)
+        PHP_FPM_SOCK=${PHP_FPM_SOCK_STD/www/$param_domain}
         local PHP_FPM_FGCI='localhost'
     fi
+
+    mkdir -p $USER_TMP
+    chown $param_user:$param_user $USER_TMP
 
     if [[ ! -s "$DOMAIN_FOLDER/.nopanel.installed" ]]; then
         nplib_command_echo "- Folder skeleton"
@@ -174,7 +179,7 @@ nopanel_web_domain_rebuild_user_domain() {
                 openssl req -x509 -nodes -days 7300 -newkey rsa:2048 \
                     -keyout $SSL_KEY \
                     -out $SSL_CERT \
-                    -subj "/C=AR/ST=Tierra del Fuego/L=Ushuaia/O=noPanel/OU=$param_user/CN=$NOPANEL_HOSTNAME"
+                    -subj "/C=AR/ST=Tierra del Fuego/L=Ushuaia/O=noPanel/OU=$param_user/CN=$param_domain"
             fi
 
             if [[ -f "$SSL_CERT" ]] && [[ -f "$SSL_KEY" ]]; then
@@ -219,6 +224,14 @@ nopanel_web_domain_rebuild_user_domain() {
         nplib_safe_rm $APACHE_SSL_CONF_FILE
     fi
 
+    if ! nplib_is_false "$DOMAIN_PHP"; then
+        PHP_FPM_CONF_FILE=$(osal_php_fpm_pool_d $DOMAIN_PHP)/${param_domain}.conf
+        nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/php-fpm/domain.conf" $PHP_FPM_CONF_FILE 'overwrite'   
+        local php_prefix=$(osal_php_package_prefix $DOMAIN_PHP)
+        osal_service_restart $php_prefix-fpm > /dev/null 2>&1
+    #else remove old/unsed PHP_FPM_CONF_FILE
+    fi
+
     # set a link to the apache config in the user directory
     # ln -s -f $APACHE_CONF_FILE "$USER_HOME/nopanel/web/apache-$param_domain.conf"
 }
@@ -246,6 +259,7 @@ nopanel_web_domain_commit_install_file() {
             -e "s|%NOPANEL_USER%|$param_user|g" \
             -e "s|%NOPANEL_USER_GROUP%|$param_user|g" \
             -e "s|%NOPANEL_USER_HOME%|$USER_HOME|g" \
+            -e "s|%NOPANEL_USER_TMP%|$USER_TMP|g" \
             -e "s|%NOPANEL_USER_EMAIL%|$USER_EMAIL|g" \
             -e "s|%NOPANEL_DOMAIN%|$param_domain|g" \
             -e "s|%NOPANEL_DOMAIN_IDN%|$DOMAIN_IDN|g" \
