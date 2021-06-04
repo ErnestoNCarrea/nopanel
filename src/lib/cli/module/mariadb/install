@@ -89,6 +89,8 @@ EOL
     mysql -e "DELETE FROM mysql.user WHERE user='';" > /dev/null 2>&1
     mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > /dev/null 2>&1
     mysql -e "DROP DATABASE test" > /dev/null 2>&1
+    mysql -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}')\";" > /dev/null 2>&1
+    mysql -e "FLUSH PRIVILEGES;" > /dev/null 2>&1
 
     nplib_modules_set_installed 'mariadb' 'true'
     nplib_modules_set 'mariadb' 'serviceName' "$OSAL_SERVICE_MARIADB"
