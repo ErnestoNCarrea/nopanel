@@ -103,7 +103,7 @@ nopanel_web_domain_rebuild_user_domain() {
         local PHP_FPM_FGCI='localhost'
     fi
 
-    if [[ ! -s "$DOMAIN_DOCROOT/.nopanel" ]]; then
+    if [[ ! -s "$DOMAIN_FOLDER/.nopanel.installed" ]]; then
         nplib_command_echo "- Folder skeleton"
         # Looks empty
         pushd $NOPANEL_DATA/web/skel > /dev/null
@@ -113,8 +113,8 @@ nopanel_web_domain_rebuild_user_domain() {
         done
         popd > /dev/null
 
-        echo '# This site was created using noPanel / https://www.nopanel.cc' >> "$DOMAIN_DOCROOT/.nopanel"
-        chown $param_user:$param_user "$DOMAIN_DOCROOT/.nopanel"
+        echo '# This file prevents noPanel from filling public_html again / https://www.nopanel.cc' >> "$DOMAIN_FOLDER/.nopanel.installed"
+        chown $param_user:$param_user "$DOMAIN_FOLDER/.nopanel.installed"
     fi
 
     case "$DOMAIN_SSL" in
