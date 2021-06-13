@@ -16,7 +16,7 @@ nopanel_module_apache_install() {
     nplib_command_echo "- Creating configuration files and directories"
     mkdir -p $OSAL_PATH_APACHE_CONF_D/domains
     mkdir -p /var/log/$OSAL_PKG_APACHE/domains
-    chmod 0770 /var/log/$OSAL_PKG_APACHE
+    chmod 0771 /var/log/$OSAL_PKG_APACHE
     chown root:nopanel-admins /var/log/$OSAL_PKG_APACHE
     touch /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log
     chmod 660 /var/log/$OSAL_PKG_APACHE/access.log /var/log/$OSAL_PKG_APACHE/error.log

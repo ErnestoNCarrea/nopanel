@@ -205,7 +205,7 @@ nopanel_web_domain_rebuild_user_domain() {
     touch $WEB_LOGS/domains/$param_domain.bytes \
         $WEB_LOGS/domains/$param_domain.log \
         $WEB_LOGS/domains/$param_domain.error.log
-    chmod 0660 $WEB_LOGS/domains/$param_domain.bytes \
+    chmod 0664 $WEB_LOGS/domains/$param_domain.bytes \
         $WEB_LOGS/domains/$param_domain.log \
         $WEB_LOGS/domains/$param_domain.error.log
     ln -f -s $WEB_LOGS/domains/$param_domain.*log \
