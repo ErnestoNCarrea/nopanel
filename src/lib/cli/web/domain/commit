@@ -72,11 +72,11 @@ nopanel_web_domain_rebuild_user_domain() {
     # Create and populate default folders
     local USER_HOME="$NOPANEL_HOME/$param_user"
     local USER_TMP="$NOPANEL_HOME/$param_user/tmp"
-    local DOMAIN_FOLDER=$USER_HOME/web/$param_domain
-    local DOMAIN_DOCROOT=$DOMAIN_FOLDER/public_html
-    mkdir -p $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
+    local DOMAIN_HOME=$USER_HOME/web/$param_domain
+    local DOMAIN_DOCROOT=$DOMAIN_HOME/public_html
+    mkdir -p $DOMAIN_HOME $DOMAIN_DOCROOT $DOMAIN_HOME/logs
     chown $param_user:$param_user "$USER_HOME/web"
-    chown $param_user:$param_user $DOMAIN_FOLDER $DOMAIN_DOCROOT $DOMAIN_FOLDER/logs
+    chown $param_user:$param_user $DOMAIN_HOME $DOMAIN_DOCROOT $DOMAIN_HOME/logs
 
     local DOMAIN_ALIASES=$(nplib_domains_get "$param_domain" 'web_aliases')
     local DOMAIN_PHP=$(nplib_domains_get "$param_domain" 'web_php')
@@ -108,18 +108,18 @@ nopanel_web_domain_rebuild_user_domain() {
     mkdir -p $USER_TMP
     chown $param_user:$param_user $USER_TMP
 
-    if [[ ! -s "$DOMAIN_FOLDER/.nopanel.installed" ]]; then
+    if [[ ! -s "$DOMAIN_HOME/.nopanel.installed" ]]; then
         nplib_command_echo "- Folder skeleton"
         # Looks empty
         pushd $NOPANEL_DATA/web/skel > /dev/null
         for FILE in $(find ./ -type f); do
-            nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel/$FILE" "$DOMAIN_FOLDER/$FILE"
-            chown $param_user:$param_user "$DOMAIN_FOLDER/$FILE"
+            nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel/$FILE" "$DOMAIN_HOME/$FILE"
+            chown $param_user:$param_user "$DOMAIN_HOME/$FILE"
         done
         popd > /dev/null
 
-        echo '# This file prevents noPanel from filling public_html again / https://www.nopanel.cc' >> "$DOMAIN_FOLDER/.nopanel.installed"
-        chown $param_user:$param_user "$DOMAIN_FOLDER/.nopanel.installed"
+        echo '# This file prevents noPanel from filling public_html again / https://www.nopanel.cc' >> "$DOMAIN_HOME/.nopanel.installed"
+        chown $param_user:$param_user "$DOMAIN_HOME/.nopanel.installed"
     fi
 
     case "$DOMAIN_SSL" in
@@ -209,7 +209,7 @@ nopanel_web_domain_rebuild_user_domain() {
         $WEB_LOGS/domains/$param_domain.log \
         $WEB_LOGS/domains/$param_domain.error.log
     ln -f -s $WEB_LOGS/domains/$param_domain.*log \
-        $DOMAIN_FOLDER/logs/
+        $DOMAIN_HOME/logs/
 
     # Apache config
 
@@ -262,6 +262,7 @@ nopanel_web_domain_commit_install_file() {
             -e "s|%NOPANEL_USER_TMP%|$USER_TMP|g" \
             -e "s|%NOPANEL_USER_EMAIL%|$USER_EMAIL|g" \
             -e "s|%NOPANEL_DOMAIN%|$param_domain|g" \
+            -e "s|%NOPANEL_DOMAIN_HOME%|$DOMAIN_HOME|g" \
             -e "s|%NOPANEL_DOMAIN_IDN%|$DOMAIN_IDN|g" \
             -e "s|%NOPANEL_ALIASES%|${DOMAIN_ALIASES//,/ }|g" \
             -e "s|%NOPANEL_ALIASES_IDN%|$DOMAIN_ALIASES_IDN|g" \
