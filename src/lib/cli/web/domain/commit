@@ -83,6 +83,7 @@ nopanel_web_domain_rebuild_user_domain() {
     local DOMAIN_SSL=$(nplib_domains_get "$param_domain" 'web_ssl')
     local USER_EMAIL=$(nplib_users_get "$param_user" 'email')
     local WEB_LOGS=$(nplib_modules_get 'web' 'logs')
+    local DOMAIN_LOGS=$DOMAIN_HOME/logs
     local WEB_SERVER=$(nplib_modules_get 'web' 'server')
 
     local DOMAIN_IDN=$(nplib_domain_idn $param_domain)
@@ -104,9 +105,9 @@ nopanel_web_domain_rebuild_user_domain() {
         PHP_FPM_SOCK=${PHP_FPM_SOCK_STD/www/$param_domain}
         local PHP_FPM_FGCI='localhost'
 
-        touch $WEB_LOGS/php_errors.log
-        chown $param_user:$param_user $WEB_LOGS/php_errors.log
-        chmod 0660 $WEB_LOGS/php_errors.log
+        touch $DOMAIN_LOGS/php_errors.log
+        chown $param_user:$param_user $DOMAIN_LOGS/php_errors.log
+        chmod 0660 $DOMAIN_LOGS/php_errors.log
     fi
 
     mkdir -p $USER_TMP
@@ -267,6 +268,7 @@ nopanel_web_domain_commit_install_file() {
             -e "s|%NOPANEL_USER_EMAIL%|$USER_EMAIL|g" \
             -e "s|%NOPANEL_DOMAIN%|$param_domain|g" \
             -e "s|%NOPANEL_DOMAIN_HOME%|$DOMAIN_HOME|g" \
+            -e "s|%NOPANEL_DOMAIN_LOGS%|$DOMAIN_LOGS|g" \
             -e "s|%NOPANEL_DOMAIN_IDN%|$DOMAIN_IDN|g" \
             -e "s|%NOPANEL_ALIASES%|${DOMAIN_ALIASES//,/ }|g" \
             -e "s|%NOPANEL_ALIASES_IDN%|$DOMAIN_ALIASES_IDN|g" \
