@@ -103,6 +103,10 @@ nopanel_web_domain_rebuild_user_domain() {
         local PHP_FPM_SOCK_STD=$(osal_php_fpm_sock $DOMAIN_PHP)
         PHP_FPM_SOCK=${PHP_FPM_SOCK_STD/www/$param_domain}
         local PHP_FPM_FGCI='localhost'
+
+        touch $WEB_LOGS/php_errors.log
+        chown $param_user:$param_user $WEB_LOGS/php_errors.log
+        chmod 0660 $WEB_LOGS/php_errors.log
     fi
 
     mkdir -p $USER_TMP
