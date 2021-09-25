@@ -5,6 +5,11 @@ nplib_users_set() {
     osal_json_set "$NOPANEL_ETC/users.json" ".\"${1}\".\"${2}\" = \"$3\""
 }
 
+# nplib_users_exists 'username'
+nplib_users_exists() {
+    return [ osal_json_get "$NOPANEL_ETC/users.json" ".\"$1\".\"username\" // \"\"" ];
+}
+
 # nplib_users_get 'username' 'key'
 nplib_users_get() {
     osal_json_get "$NOPANEL_ETC/users.json" ".\"$1\".\"$2\" // \"\""

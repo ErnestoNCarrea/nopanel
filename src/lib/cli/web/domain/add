@@ -17,7 +17,13 @@ nopanel_web_domain_add() {
         return
     fi
 
+    nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
+
+    if ! nplib_users_exists $param_user; then
+        nplib_command_output 'error' 'User does not exist'
+        return
+    fi
 
     # Default values
     [[ ! "$param_php" ]] && param_php='no'
