@@ -2,40 +2,40 @@
 
 # nplib_domains_set 'domain' 'key' 'value'
 nplib_domains_set() {
-    osal_json_set "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"${1}\".\"${2}\" = \"$3\""
+    osal_json_set "$NOPANEL_HOME/$param_user/.nopanel/domains.json" ".\"${1}\".\"${2}\" = \"$3\""
 }
 
 # nplib_domains_get 'domain' 'key'
 nplib_domains_get() {
-    osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"$1\".\"$2\" // \"\""
+    osal_json_get "$NOPANEL_HOME/$param_user/.nopanel/domains.json" ".\"$1\".\"$2\" // \"\""
 }
 
 # nplib_domains_get_all 'domain'
 nplib_domains_get_all() {
-    osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".\"$1\" // {}"
+    osal_json_get "$NOPANEL_HOME/$param_user/.nopanel/domains.json" ".\"$1\" // {}"
 }
 
 # nplib_domains_list ['user']
 nplib_domains_list() {
     if [[ "$1" ]]; then
-        osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" ".[] | select(.user == \"$1\") | .name"
+        osal_json_get "$NOPANEL_HOME/$param_user/.nopanel/domains.json" ".[] | select(.user == \"$1\") | .name"
     else
-        osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" "keys[]"
+        osal_json_get "$NOPANEL_HOME/$param_user/.nopanel/domains.json" "keys[]"
     fi
 }
 
 # nplib_domains_list_json ['user']
 nplib_domains_list_json() {
     if [[ "$1" ]]; then
-        osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" "with_entries(select(.value.user == \"$1\"))"
+        osal_json_get "$NOPANEL_HOME/$param_user/.nopanel/domains.json" "with_entries(select(.value.user == \"$1\"))"
     else
-        osal_json_get "$NOPANEL_HOME/$param_user/nopanel/domains.json" "."
+        osal_json_get "$NOPANEL_HOME/$param_user/.nopanel/domains.json" "."
     fi
 }
 
 # nplib_domains_delete 'domain'
 nplib_domains_delete() {
-    osal_json_set "$NOPANEL_HOME/$param_user/nopanel/domains.json" "del(.\"$1\")"
+    osal_json_set "$NOPANEL_HOME/$param_user/.nopanel/domains.json" "del(.\"$1\")"
 }
 
 # nplib_domains_list 'domain' 'key'

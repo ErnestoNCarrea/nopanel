@@ -39,8 +39,8 @@ nopanel_web_domain_rebuild_user() {
             local DELETED=""
             local CHANGED="$(nplib_domains_list)"
         else
-            local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/nopanel/domains.json)
-            local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/nopanel/domains.json)
+            local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/.nopanel/domains.json)
+            local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/.nopanel/domains.json)
         fi
 
         for param_domain in $DELETED; do
@@ -53,7 +53,7 @@ nopanel_web_domain_rebuild_user() {
         unset param_domain
     fi
 
-    nplib_commits_save $NOPANEL_HOME/$param_user/nopanel/domains.json
+    nplib_commits_save $NOPANEL_HOME/$param_user/.nopanel/domains.json
 }
 
 nopanel_web_domain_rebuild_user_domain() {

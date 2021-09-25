@@ -18,8 +18,8 @@ nopanel_database_diff() {
     nplib_require $NOPANEL_LIB/domain.inc
     nplib_require $NOPANEL_LIB/commit.inc
 
-    local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/nopanel/databases.json)
-    local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/nopanel/databases.json)
+    local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/.nopanel/databases.json)
+    local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/.nopanel/databases.json)
     
     nplib_command_output 'ok' 'Database diff' "{deleted: \"$DELETED\", changed: \"$CHANGED\"}"
 }

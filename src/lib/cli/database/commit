@@ -38,8 +38,8 @@ nopanel_db_rebuild_user() {
                 local DELETED=""
                 local CHANGED="$(nplib_databases_list)"
             else
-                local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/nopanel/databases.json)
-                local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/nopanel/databases.json)
+                local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/.nopanel/databases.json)
+                local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/.nopanel/databases.json)
             fi
 
             for DB_FULLNAME in $DELETED; do
@@ -55,7 +55,7 @@ nopanel_db_rebuild_user() {
         unset param_db
     fi
 
-    nplib_commits_save $NOPANEL_HOME/$param_user/nopanel/databases.json
+    nplib_commits_save $NOPANEL_HOME/$param_user/.nopanel/databases.json
 }
 
 nopanel_db_rebuild_user_db() {

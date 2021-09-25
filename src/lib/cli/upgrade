@@ -19,6 +19,16 @@ nopanel_upgrade() {
     # update version
     osal_json_set "/etc/nopanel/nopanel.json" ".version=\"$NOPANEL_VERSION\""
 
+    # Upgrade users
+    nplib_require $NOPANEL_LIB/user.inc
+    local USERS=$(nplib_users_list)
+    for param_user in $USERS; do
+        if [ -d $NOPANEL_HOME/$param_user/nopanel ]; then
+            # This folder used to be called "nopanel", it's now called ".nopanel"
+            mv $NOPANEL_HOME/$param_user/nopanel $NOPANEL_HOME/$param_user/.nopanel
+        fi
+    done
+
     nplib_command_output 'ok' 'noPanel ready'
 }
 

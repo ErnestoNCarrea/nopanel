@@ -51,5 +51,5 @@ Ref.:
 ### BYOJ (Bring Your Own Json)
 
 /etc/nopanel/users.json (root only)
-~/nopanel/domains.json
-~/nopanel/databases.json
+~/.nopanel/domains.json
+~/.nopanel/databases.json
