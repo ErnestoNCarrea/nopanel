@@ -223,8 +223,8 @@ nopanel_web_domain_rebuild_user_domain() {
 
     # Apache config
 
-    #mkdir -p $USER_HOME/nopanel/web
-    #chown -R $param_user:$param_user "$USER_HOME/nopanel/web"
+    #mkdir -p $USER_HOME/.nopanel/web
+    #chown -R $param_user:$param_user "$USER_HOME/.nopanel/web"
     local APACHE_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}_domain_${param_domain}.conf
     local APACHE_SSL_CONF_FILE=$OSAL_PATH_APACHE_CONF_D/domains/user_${param_user}_domain_${param_domain}.ssl.conf
     nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/apache/domain.http.conf" $APACHE_CONF_FILE 'overwrite'
@@ -243,7 +243,7 @@ nopanel_web_domain_rebuild_user_domain() {
     fi
 
     # set a link to the apache config in the user directory
-    # ln -s -f $APACHE_CONF_FILE "$USER_HOME/nopanel/web/apache-$param_domain.conf"
+    # ln -s -f $APACHE_CONF_FILE "$USER_HOME/.nopanel/web/apache-$param_domain.conf"
 }
 
 nopanel_web_domain_delete_user_domain() {

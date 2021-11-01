@@ -112,15 +112,15 @@ nopanel_user_commit_update() {
         $USER_HOME/.ssh \
         $USER_HOME/.npm
 
-    chgrp nopanel-admins $USER_HOME/nopanel
-    chmod 0750 $USER_HOME/nopanel
+    chgrp nopanel-admins $USER_HOME/.nopanel
+    chmod 0750 $USER_HOME/.nopanel
 
     nplib_command_echo ' - Creating user noPanel environment'
     for FILE in nopanel.json domains.json databases.json
     do
-        [[ -s "$USER_HOME/nopanel/$FILE" ]] || echo '{}' > "$USER_HOME/nopanel/$FILE"
-        chmod 0640 $USER_HOME/nopanel/$FILE
-        chown $param_user:nopanel-admins $USER_HOME/nopanel/$FILE
+        [[ -s "$USER_HOME/.nopanel/$FILE" ]] || echo '{}' > "$USER_HOME/.nopanel/$FILE"
+        chmod 0640 $USER_HOME/.nopanel/$FILE
+        chown $param_user:nopanel-admins $USER_HOME/.nopanel/$FILE
     done
 }
 
