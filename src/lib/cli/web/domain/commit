@@ -117,6 +117,11 @@ nopanel_web_domain_rebuild_user_domain() {
         nplib_command_echo "- Folder skeleton"
         # Looks empty
         pushd $NOPANEL_DATA/web/skel > /dev/null
+        for FILE in $(find ./ -type d); do
+            mkdir -p "$DOMAIN_HOME/$FILE"
+            chown $param_user:$param_user "$DOMAIN_HOME/$FILE"
+        done
+
         for FILE in $(find ./ -type f); do
             nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/skel/$FILE" "$DOMAIN_HOME/$FILE"
             chown $param_user:$param_user "$DOMAIN_HOME/$FILE"
