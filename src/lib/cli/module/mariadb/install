@@ -6,7 +6,7 @@ nopanel_module_mariadb_install() {
     nplib_require $NOPANEL_LIB/module.inc
     nplib_auto_elevate
 
-    local mariadb_version='10.5'
+    local mariadb_version='10.6'
 
     osal_service_stop $OSAL_SERVICE_MARIADB > /dev/null 2>&1
     nplib_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
@@ -97,7 +97,7 @@ EOL
     nplib_modules_set 'mariadb' 'host' 'localhost'
     nplib_modules_set 'mariadb' 'user' 'root'
     nplib_modules_set 'mariadb' 'port' '3306'
-    [[ "mariadb_root_password" ]] && nplib_modules_set 'mariadb' 'password' "$mariadb_root_password"
+    [[ "$mariadb_root_password" ]] && nplib_modules_set 'mariadb' 'password' "$mariadb_root_password"
         
     nplib_command_output 'ok' 'MariaDB module installed'
 }
