@@ -59,6 +59,7 @@ nopanel_db_rebuild_user() {
 }
 
 nopanel_db_rebuild_user_db() {
+    # FIXME: param_db might be blank
     local DB_FULLNAME="${param_user}_${param_db}"
     local DB_USER=$(nplib_databases_get "$DB_FULLNAME" 'dbuser')
     local DB_FULLUSER="${param_user}_${DB_USER}"
