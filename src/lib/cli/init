@@ -54,13 +54,14 @@ nopanel_init() {
 
     nplib_command_echo "- Enabling SFTP jails"
     # disable internal SFTP
-    sed -i "s/^Subsystem.*sftp$/Subsystem sftp internal-sftp/" $OSAL_SSHD_CONFIG
+    sed -i "s/^Subsystem.*sftp-server$/#Subsystem.*sftp-server/" $OSAL_SSHD_CONFIG
     # enable SFTP jail
     if ! grep "# noPanel SFTP jail" $OSAL_SSHD_CONFIG > /dev/null; then
         cat << EOF >> $OSAL_SSHD_CONFIG
 # noPanel SFTP jail
+Subsystem sftp internal-sftp
 Match Group nopanel-sftp
-ChrootDirectory %h
+    ChrootDirectory %h
     X11Forwarding no
     AllowTCPForwarding no
     ForceCommand internal-sftp
