@@ -15,7 +15,7 @@ ubuntu)
     OS_VERSION="$(lsb_release -s -r)".
     OS_CODENAME="$(lsb_release -s -c)"
     ;;
-centos|rhel|fedora|redhat)
+centos|rhel|fedora|redhat|almalinux|rocky)
     OS_BASE='rhel'
     OS_VERSION=$(cat /etc/os-release | grep VERSION_ID | sed -e "s/VERSION_ID=//" | sed -e 's/^"//' -e 's/"$//')
     OS_CODENAME=''
