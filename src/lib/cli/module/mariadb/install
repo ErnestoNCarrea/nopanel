@@ -33,7 +33,7 @@ EOL
 # This file was added by noPanel (http://www.nopanel.cc)
 [mariadb]
 name = MariaDB
-baseurl = http://yum.mariadb.org/${mariadb_version}/${OS_BASE}${OS_VERSION}-amd64
+baseurl = http://yum.mariadb.org/${mariadb_version}/${OS_BASE}${OS_VERSION_MAJOR}-amd64
 module_hotfixes=1
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1
