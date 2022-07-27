@@ -12,7 +12,7 @@ nopanel_module_php-fpm_install() {
             nplib_command_echo " - Adding Remi repository"
             osal_package_install "https://rpms.remirepo.net/fedora/remi-release-${OS_VERSION}.rpm" > /dev/null 2>&1
             ;;
-        'rhel')
+        'centos'|'rhel'|'redhat'|'almalinux'|'rocky')
             nplib_command_echo " - Adding Remi repository"
             osal_package_install "https://rpms.remirepo.net/enterprise/remi-release-${OS_VERSION}.rpm" > /dev/null 2>&1
             ;;
