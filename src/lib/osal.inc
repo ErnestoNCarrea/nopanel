@@ -194,7 +194,7 @@ osal_bool_tostring() {
 # Executes a process and logs it's output
 osal_execute() {
     echo "\$ $@" >> $NOPANEL_LOG/debug.log
-    $@ | tee $NOPANEL_LOG/debug.log 2>&1
+    $@ | tee --append $NOPANEL_LOG/debug.log 2>&1
 }
 
 # Executes a process silently in the background while showing a spinner
