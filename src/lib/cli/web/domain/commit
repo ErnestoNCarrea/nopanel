@@ -238,7 +238,7 @@ nopanel_web_domain_rebuild_user_domain() {
         PHP_FPM_CONF_FILE=$(osal_php_fpm_pool_d $DOMAIN_PHP)/${param_domain}.conf
         nopanel_web_domain_commit_install_file "$NOPANEL_DATA/web/php-fpm/domain.conf" $PHP_FPM_CONF_FILE 'overwrite'   
         local php_prefix=$(osal_php_package_prefix $DOMAIN_PHP)
-        osal_service_restart $php_prefix-fpm > /dev/null 2>&1
+        osal_execute osal_service_restart $php_prefix-fpm
     #else remove old/unsed PHP_FPM_CONF_FILE
     fi
 

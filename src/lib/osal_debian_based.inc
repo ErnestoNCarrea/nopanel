@@ -116,13 +116,11 @@ osal_package_preinstall() {
 
 # package_install 'package' 'package' ...
 osal_package_install() {
-    [ "$NOPANEL_DEBUG" ] && >&2 echo $OSAL_CMD_PACKAGE_MANAGER -y -qq install -o Dpkg::Options::="--force-confold" "$@"
     $OSAL_CMD_PACKAGE_MANAGER -y -qq install -o Dpkg::Options::="--force-confold" "$@"
 }
 
 # package_remoev 'package' 'package' ...
 osal_package_remove() {
-    [ "$NOPANEL_DEBUG" ] && >&2 echo $OSAL_CMD_PACKAGE_MANAGER -y -qq purge "$@"
     $OSAL_CMD_PACKAGE_MANAGER -y -qq purge "$@"
 }
 

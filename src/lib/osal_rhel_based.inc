@@ -114,13 +114,11 @@ osal_package_preinstall() {
 
 # package_install 'package' 'package' ...
 osal_package_install() {
-    [ "$NOPANEL_DEBUG" ] && >&2 echo $OSAL_CMD_PACKAGE_MANAGER -q -y install "$@"
     $OSAL_CMD_PACKAGE_MANAGER -q -y install "$@"
 }
 
 # package_remoev 'package' 'package' ...
 osal_package_remove() {
-    [ "$NOPANEL_DEBUG" ] && >&2 $OSAL_CMD_PACKAGE_MANAGER -q -y remove "$@"
     $OSAL_CMD_PACKAGE_MANAGER -q -y remove "$@"
 }
 

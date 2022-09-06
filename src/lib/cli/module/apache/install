@@ -6,12 +6,12 @@ nopanel_module_apache_install() {
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/module.inc
 
-    osal_service_stop $OSAL_SERVICE_APACHE > /dev/null 2>&1
+    osal_execute osal_service_stop $OSAL_SERVICE_APACHE
     nplib_config_backup 'apache-install' $OSAL_PATH_APACHE_CONF $OSAL_PATH_APACHE_CONF_D
 
     nplib_command_echo "- Installing Apache package(s)"
-    osal_package_preinstall > /dev/null 2>&1
-    osal_package_install $OSAL_PKG_APACHE $OSAL_PKG_APACHE_EXTRA > /dev/null 2>&1
+    osal_execute osal_package_preinstall
+    osal_execute osal_package_install $OSAL_PKG_APACHE $OSAL_PKG_APACHE_EXTRA
 
     nplib_command_echo "- Creating configuration files and directories"
     mkdir -p $OSAL_PATH_APACHE_CONF_D/domains
@@ -52,8 +52,8 @@ nopanel_module_apache_install() {
     mkdir -p /var/www/html/.well-known/acme-challenge
 
     nplib_command_echo "- Enabling and starting Apache service"
-    osal_service_enable $OSAL_SERVICE_APACHE > /dev/null 2>&1
-    osal_service_start $OSAL_SERVICE_APACHE > /dev/null 2>&1
+    osal_execute osal_service_enable $OSAL_SERVICE_APACHE
+    osal_execute osal_service_start $OSAL_SERVICE_APACHE
         
     nplib_command_output 'ok' 'Apache module installed'
 }

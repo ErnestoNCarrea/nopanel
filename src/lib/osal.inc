@@ -61,13 +61,13 @@ osal_service_restart() {
 # service_enable 'service-name'
 osal_service_enable() {
     [ "$NOPANEL_DEBUG" ] && >&2 echo Enable service $1
-    /usr/bin/systemctl enable ${1}.service > /dev/null 2>&1
+    /usr/bin/systemctl enable ${1}.service
 }
 
 # service_disable 'service-name'
 osal_service_disable() {
     [ "$NOPANEL_DEBUG" ] && >&2 echo Disable service $1
-    /usr/bin/systemctl disable ${1}.service > /dev/null 2>&1
+    /usr/bin/systemctl disable ${1}.service
 }
 
 osal_value_in_list() {
@@ -191,18 +191,25 @@ osal_bool_tostring() {
     fi
 }
 
+# Executes a process and logs it's output
+osal_execute() {
+    echo "\$ $@" >> $NOPANEL_LOG/debug.log
+    $@ | tee $NOPANEL_LOG/debug.log 2>&1
+}
+
 # Executes a process silently in the background while showing a spinner
 osal_execute_with_spinner() {
     if [ "$OSAL_DEBUG" ]; then
         echo "$@"
         $@
     else
-        $@ > /dev/null 2>&1 &
+        echo "\$ $@" >> $NOPANEL_LOG/debug.log
+        $@ > $NOPANEL_LOG/debug.log 2>&1 &
         local BACK_PID=$!
 
         local spinner="/-\|"
         local spin_i=1
-        while kill -0 $BACK_PID > /dev/null 2>&1 ; do
+        while kill -0 $BACK_PID > $NOPANEL_LOG/debug.log 2>&1 ; do
             printf "\b${spinner:spin_i++%${#spinner}:1}"
             sleep 0.5
         done
@@ -225,15 +232,15 @@ osal_gen_pass() {
 
 # osal_user_add_group 'user' 'group'
 osal_user_add_group() {
-    /usr/sbin/usermod -a -G "$2" "$1" > /dev/null 2>&1
+    /usr/sbin/usermod -a -G "$2" "$1" > $NOPANEL_LOG/debug.log 2>&1
 }
 
 # osal_user_del_group 'user' 'group'
 osal_user_del_group() {
-    /usr/bin/gpasswd -d "$param_user" nopanel-sftp > /dev/null 2>&1
+    /usr/bin/gpasswd -d "$param_user" nopanel-sftp > $NOPANEL_LOG/debug.log 2>&1
 }
 
 # osal_user_del_group 'user' 'shell'
 osal_user_set_shell() {
-    /usr/sbin/usermod --shell "$2" "$1" > /dev/null 2>&1
+    /usr/sbin/usermod --shell "$2" "$1" > $NOPANEL_LOG/debug.log 2>&1
 }

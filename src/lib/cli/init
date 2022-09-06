@@ -48,8 +48,8 @@ nopanel_init() {
 
     if [ "$OS_BASE" = 'rhel' ]; then
         nplib_command_echo "- Enabling EPEL repository"
-        osal_package_preinstall > /dev/null 2>&1
-        osal_package_install epel-release > /dev/null 2>&1
+        osal_execute osal_package_preinstall
+        osal_execute osal_package_install epel-release
     fi
 
     nplib_command_echo "- Enabling SFTP jails"

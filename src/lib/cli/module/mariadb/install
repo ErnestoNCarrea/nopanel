@@ -6,9 +6,9 @@ nopanel_module_mariadb_install() {
     nplib_require $NOPANEL_LIB/module.inc
     nplib_auto_elevate
 
-    local mariadb_version='10.7'
+    local mariadb_version='10.8'
 
-    osal_service_stop $OSAL_SERVICE_MARIADB > /dev/null 2>&1
+    osal_execute osal_service_stop $OSAL_SERVICE_MARIADB
     nplib_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
 
     nplib_command_echo "- Installing MariaDB package(s)"
@@ -18,16 +18,16 @@ nopanel_module_mariadb_install() {
 # This file was added by noPanel (http://www.nopanel.cc)
 deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/debian $OS_CODENAME main
 EOL
-        apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' > /dev/null 2>&1
+        osal_execute apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
     elif [ "$OS_BASE" = 'ubuntu' ]; then
         cat > /etc/apt/sources.list.d/mariadb.list <<EOL
 # This file was added by noPanel (http://www.nopanel.cc)
 deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/ubuntu $OS_CODENAME main
 EOL
-        apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' > /dev/null 2>&1
+        osal_execute apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
     elif [ "$OS_BASE" = 'rhel' ]; then
         # Remove conflicting OS-provided packages
-        osal_package_remove mariadb-server mariadb-gssapi-server > /dev/null 2>&1
+        osal_execute osal_package_remove mariadb-server mariadb-gssapi-server
 
         cat > "/etc/yum.repos.d/mariadb.repo" <<EOL
 # This file was added by noPanel (http://www.nopanel.cc)
@@ -40,12 +40,12 @@ gpgcheck=1
 EOL
     fi
 
-    osal_package_preinstall > /dev/null 2>&1
-    osal_package_install ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common > /dev/null 2>&1
+    osal_execute osal_package_preinstall
+    osal_execute osal_package_install ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common
 
     if [ "$OS_BASE" = 'rhel' ]; then
         # Since 10.7, compression plugins are packaged
-        osal_package_install ${OSAL_PKG_MARIADB}-provider-lz4 ${OSAL_PKG_MARIADB}-provider-lzma ${OSAL_PKG_MARIADB}-backup > /dev/null 2>&1
+        osal_execute osal_package_install ${OSAL_PKG_MARIADB}-provider-lz4 ${OSAL_PKG_MARIADB}-provider-lzma ${OSAL_PKG_MARIADB}-backup
     fi
 
     nplib_command_echo "- Creating configuration files and directories"
@@ -63,15 +63,15 @@ EOL
     cp -f $NOPANEL_DATA/$OS_BASE/mariadb/$mycnf $OSAL_DIR_MARIADB_CONF_D/nopanel.cnf
     if [ ! -d $OSAL_PATH_MARIADB_DATA ]; then
         nplib_command_echo " - Creating initial database"
-        mysql_install_db > /dev/null 2>&1
+        mysql_install_db > $NOPANEL_LOG/debug.log 2>&1
     fi
 
     [[ -d  /var/run/mysqld ]] && chown mysql:mysql /var/run/mysqld
 
     nplib_command_echo "- Enabling and starting MariaDB service"
 
-    osal_service_enable $OSAL_SERVICE_MARIADB > /dev/null 2>&1
-    osal_service_start $OSAL_SERVICE_MARIADB > /dev/null 2>&1
+    osal_execute osal_service_enable $OSAL_SERVICE_MARIADB
+    osal_execute osal_service_start $OSAL_SERVICE_MARIADB
 
     nplib_command_echo "- Additional MariaDB configuration"
 
@@ -85,21 +85,21 @@ EOL
         osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.password = \"$mariadb_root_password\""
     fi
 
-    mysql_upgrade > /dev/null 2>&1
+    mysql_upgrade > $NOPANEL_LOG/debug.log 2>&1
 
     # Clear MariaDB test users and databases
     # FIXME: MariaDB 10.4 and up use global_priv
-    mysql -e "DELETE FROM mysql.user WHERE User=''" > /dev/null 2>&1
-    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'" > /dev/null 2>&1
-    mysql -e "DELETE FROM mysql.user WHERE user='';" > /dev/null 2>&1
-    mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > /dev/null 2>&1
-    mysql -e "DROP DATABASE test" > /dev/null 2>&1
-    mysql -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}')\";" > /dev/null 2>&1
-    mysql -e "FLUSH PRIVILEGES;" > /dev/null 2>&1
+    mysql -e "DELETE FROM mysql.user WHERE User=''" > $NOPANEL_LOG/debug.log 2>&1
+    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'" > $NOPANEL_LOG/debug.log 2>&1
+    mysql -e "DELETE FROM mysql.user WHERE user='';" > $NOPANEL_LOG/debug.log 2>&1
+    mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > $NOPANEL_LOG/debug.log 2>&1
+    mysql -e "DROP DATABASE test" > $NOPANEL_LOG/debug.log 2>&1
+    mysql -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}')\";" > $NOPANEL_LOG/debug.log 2>&1
+    mysql -e "FLUSH PRIVILEGES;" > $NOPANEL_LOG/debug.log 2>&1
 
     if [ "$OS_BASE" = 'rhel' ]; then
-        mysql -e "INSTALL SONAME 'provider_lz4';" > /dev/null 2>&1
-        mysql -e "INSTALL SONAME 'provider_lzma';" > /dev/null 2>&1
+        mysql -e "INSTALL SONAME 'provider_lz4';" > $NOPANEL_LOG/debug.log 2>&1
+        mysql -e "INSTALL SONAME 'provider_lzma';" > $NOPANEL_LOG/debug.log 2>&1
     fi
 
     nplib_modules_set_installed 'mariadb' 'true'

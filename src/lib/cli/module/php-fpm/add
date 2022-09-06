@@ -54,8 +54,8 @@ nopanel_module_php-fpm_add() {
     fi
 
     # Install php packages
-    osal_package_preinstall > /dev/null 2>&1
-    osal_package_install $PACKAGES > /dev/null 2>&1
+    osal_execute osal_package_preinstall
+    osal_execute osal_package_install $PACKAGES
 
     WEB_SERVER=$(nplib_modules_get 'web' 'server')
     nplib_command_echo " - Configuring for $WEB_SERVER"
@@ -69,8 +69,8 @@ nopanel_module_php-fpm_add() {
     fi
 
     # Enable and start service
-    osal_service_enable $php_prefix-fpm > /dev/null 2>&1
-    osal_service_start $php_prefix-fpm > /dev/null 2>&1
+    osal_execute osal_service_enable $php_prefix-fpm
+    osal_execute osal_service_start $php_prefix-fpm
 
     nplib_modules_set 'php-fpm' "$param_version" 'true'
 
