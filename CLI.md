@@ -2,8 +2,12 @@
 
 ### noPanel command line interface
 
+```bash
 nopanel [--output json|plain] [--interactive [yes|no]]
+```
 
+
+```bash
 [n]     ver
 [id]    init
 [Ri]    commit
@@ -40,6 +44,7 @@ nopanel [--output json|plain] [--interactive [yes|no]]
 [n]     module php-fpm info
 [Ri]    module php-fpm install
 [Ri]    module php-fpm add [--version MAJOR.MINOR]
+```
 
 Ref.:
 [n] Causes no change
