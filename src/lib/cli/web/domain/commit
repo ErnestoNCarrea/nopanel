@@ -106,8 +106,17 @@ nopanel_web_domain_rebuild_user_domain() {
         local PHP_FPM_FGCI='localhost'
 
         touch $DOMAIN_LOGS/php_errors.log
-        chown $param_user:$param_user $DOMAIN_LOGS/php_errors.log
+        touch $DOMAIN_LOGS/$param_domain.log
+        touch $DOMAIN_LOGS/$param_domain.bytes
+        touch $DOMAIN_LOGS/$param_domain.error.log
+        chown root:$param_user $DOMAIN_LOGS/php_errors.log
+        chown root:$param_user $DOMAIN_LOGS/$param_domain.log
+        chown root:$param_user $DOMAIN_LOGS/$param_domain.bytes
+        chown root:$param_user $DOMAIN_LOGS/$param_domain.error.log
         chmod 0660 $DOMAIN_LOGS/php_errors.log
+        chmod 0660 $DOMAIN_LOGS/$param_domain.log
+        chmod 0660 $DOMAIN_LOGS/$param_domain.bytes
+        chmod 0660 $DOMAIN_LOGS/$param_domain.error.log
     fi
 
     mkdir -p $USER_TMP

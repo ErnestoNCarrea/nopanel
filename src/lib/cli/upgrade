@@ -29,6 +29,10 @@ nopanel_upgrade() {
         fi
     done
 
+    # log permissions
+    chmod 0775 /var/log/$OSAL_PKG_APACHE
+    chmod 0775 /var/log/$OSAL_PKG_APACHE/domains
+
     nplib_command_output 'ok' 'noPanel ready'
 }
 
