@@ -18,6 +18,7 @@ nopanel [--output json|plain] [--interactive [yes|no]]
 [Rnd]   module apache reload
 
 [Rid]   module mariadb install
+[Rid]   module mariadb upgrade
 [Rid]   module mariadb wipe --force
 
 [n]     user list
