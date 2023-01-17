@@ -1,0 +1,66 @@
+#!/bin/bash
+
+nopanel_module_mariadb_upgrade() {
+    nplib_command_echo "= Upgrade MariaDB"
+
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_auto_elevate
+
+    local mariadb_version='10.10'
+
+    osal_execute osal_service_stop $OSAL_SERVICE_MARIADB
+    nplib_config_backup 'mariadb-upgrade' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
+
+    nplib_command_echo "- Removing current MariaDB server package(s)"
+
+    osal_execute osal_package_remove ${OSAL_PKG_MARIADB}-server
+
+    # Setup repos
+    if [ "$OS_BASE" = 'debian' ]; then
+        cat > /etc/apt/sources.list.d/mariadb.list <<EOL
+# This file was added by noPanel (http://www.nopanel.cc)
+deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/debian $OS_CODENAME main
+EOL
+        osal_execute apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
+    elif [ "$OS_BASE" = 'ubuntu' ]; then
+        cat > /etc/apt/sources.list.d/mariadb.list <<EOL
+# This file was added by noPanel (http://www.nopanel.cc)
+deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/ubuntu $OS_CODENAME main
+EOL
+        osal_execute apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
+    elif [ "$OS_BASE" = 'rhel' ]; then
+        # Remove conflicting OS-provided packages
+        osal_execute osal_package_remove mariadb-server mariadb-gssapi-server
+
+        cat > "/etc/yum.repos.d/mariadb.repo" <<EOL
+# This file was added by noPanel (http://www.nopanel.cc)
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/${mariadb_version}/${OS_BASE}${OS_VERSION_MAJOR}-amd64
+module_hotfixes=1
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+EOL
+    fi
+
+    nplib_command_echo "- Installing new MariaDB server package(s)"
+
+    osal_execute osal_package_preinstall
+    osal_execute osal_package_install ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common
+
+    if [ "$OS_BASE" = 'rhel' ]; then
+        # Since 10.7, compression plugins are packaged
+        osal_execute osal_package_install ${OSAL_PKG_MARIADB}-provider-lz4 ${OSAL_PKG_MARIADB}-provider-lzma ${OSAL_PKG_MARIADB}-backup
+    fi
+
+    nplib_command_echo "- Enabling and starting MariaDB service"
+
+    osal_execute osal_service_enable $OSAL_SERVICE_MARIADB
+    osal_execute osal_service_start $OSAL_SERVICE_MARIADB
+
+    nplib_command_echo "- Running MariaDB upgrade script"
+
+    mariadb-upgrade > $NOPANEL_LOG/debug.log 2>&1
+
+    nplib_command_output 'ok' 'MariaDB module upgraded'
+}
