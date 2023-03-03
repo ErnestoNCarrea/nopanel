@@ -46,7 +46,7 @@ nopanel_module_php-fpm_add() {
         $php_prefix-soap $php_prefix-xml $php_prefix-zip
         $php_prefix-bz2 $php_prefix-pspell $php_prefix-imagick $php_prefix-pgsql
         $php_prefix-imap $php_prefix-ldap $php_prefix-opcache
-        $php_prefix-memcache $php_prefix-memcached
+        $php_prefix-pecl-memcache $php_prefix-pecl-memcached
         "
 
     if [ "$OS_BASE" = 'rhel' ]; then
