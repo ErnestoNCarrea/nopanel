@@ -45,12 +45,15 @@ nopanel_module_php-fpm_add() {
         $php_prefix-gd $php_prefix-intl $php_prefix-mbstring 
         $php_prefix-soap $php_prefix-xml $php_prefix-zip
         $php_prefix-bz2 $php_prefix-pspell $php_prefix-imagick $php_prefix-pgsql
-        $php_prefix-imap $php_prefix-ldap $php_prefix-opcache"
+        $php_prefix-imap $php_prefix-ldap $php_prefix-opcache
+        $php_prefix-memcache $php_prefix-memcached
+        "
 
     if [ "$OS_BASE" = 'rhel' ]; then
-        PACKAGES="$PACKAGES $php_prefix-fpm $php_prefix-apcu $php_prefix-mysqlnd"
+        PACKAGES="$PACKAGES $php_prefix-fpm $php_prefix-apcu $php_prefix-mysqlnd memcached libmemcached"
     else
-        PACKAGES="$PACKAGES php-apcu $php_prefix-mysql"
+        # Debian / Ubuntu
+        PACKAGES="$PACKAGES php-apcu $php_prefix-mysql memcached libmemcached-tools php-memcached"
     fi
 
     # Install php packages
@@ -68,7 +71,9 @@ nopanel_module_php-fpm_add() {
         osal_apache_module_enable 'mpm_event' > /dev/null 2>&1
     fi
 
-    # Enable and start service
+    # Enable and start services
+    osal_execute osal_service_enable memcached
+    osal_execute osal_service_start memcached
     osal_execute osal_service_enable $php_prefix-fpm
     osal_execute osal_service_start $php_prefix-fpm
 
