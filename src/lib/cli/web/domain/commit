@@ -158,8 +158,8 @@ nopanel_web_domain_rebuild_user_domain() {
                     # set user email
                     sed -i "s/^#ACCOUNT_EMAIL=\"me@example.com\"/ACCOUNT_EMAIL=\"$USER_EMAIL\"/" $GETSSL_USER_CONFIG
                     # set production mode
-                    sed -i "s/^CA=\"https://acme-staging-v02/#CA=\"https://acme-staging-v02/" $GETSSL_USER_CONFIG
-                    sed -i "s/^#CA=\"https://acme-v02/CA=\"https://acme-v02/" $GETSSL_USER_CONFIG
+                    sed -i "s/^CA=\"https:\/\/acme-staging-v02/#CA=\"https:\/\/acme-staging-v02/" $GETSSL_USER_CONFIG
+                    sed -i "s/^#CA=\"https:\/\/acme-v02/CA=\"https:\/\/acme-v02/" $GETSSL_USER_CONFIG
                 fi
 
                 # set getssl domain config if it doesn't exist
