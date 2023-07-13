@@ -63,7 +63,7 @@ EOL
     cp -f $NOPANEL_DATA/$OS_BASE/mariadb/$mycnf $OSAL_DIR_MARIADB_CONF_D/nopanel.cnf
     if [ ! -d $OSAL_PATH_MARIADB_DATA ]; then
         nplib_command_echo " - Creating initial database"
-        mysql_install_db > $NOPANEL_LOG/debug.log 2>&1
+        mariadb-install-db > $NOPANEL_LOG/debug.log 2>&1
     fi
 
     [[ -d  /var/run/mysqld ]] && chown mysql:mysql /var/run/mysqld
@@ -78,28 +78,28 @@ EOL
     if [ ! -s ~/.my.cnf ]; then
         # If /root/.my.cnf does not exist, secure MariaDB by setting root password
         local mariadb_root_password=$(osal_gen_pass)
-        mysqladmin -u root password $mariadb_root_password
+        mariadb-admin -u root password $mariadb_root_password
         echo -e "[client]\nuser=root\npassword='$mariadb_root_password'\n" > ~/.my.cnf
         chmod 600 ~/.my.cnf
 
         osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.password = \"$mariadb_root_password\""
     fi
 
-    mysql_upgrade > $NOPANEL_LOG/debug.log 2>&1
+    mariadb-upgrade > $NOPANEL_LOG/debug.log 2>&1
 
     # Clear MariaDB test users and databases
     # FIXME: MariaDB 10.4 and up use global_priv
-    mysql -e "DELETE FROM mysql.user WHERE User=''" > $NOPANEL_LOG/debug.log 2>&1
-    mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'" > $NOPANEL_LOG/debug.log 2>&1
-    mysql -e "DELETE FROM mysql.user WHERE user='';" > $NOPANEL_LOG/debug.log 2>&1
-    mysql -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > $NOPANEL_LOG/debug.log 2>&1
-    mysql -e "DROP DATABASE test" > $NOPANEL_LOG/debug.log 2>&1
-    mysql -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}')\";" > $NOPANEL_LOG/debug.log 2>&1
-    mysql -e "FLUSH PRIVILEGES;" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "DELETE FROM mysql.user WHERE User=''" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "DELETE FROM mysql.user WHERE user='';" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "DROP DATABASE test" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}')\";" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "FLUSH PRIVILEGES;" > $NOPANEL_LOG/debug.log 2>&1
 
     if [ "$OS_BASE" = 'rhel' ]; then
-        mysql -e "INSTALL SONAME 'provider_lz4';" > $NOPANEL_LOG/debug.log 2>&1
-        mysql -e "INSTALL SONAME 'provider_lzma';" > $NOPANEL_LOG/debug.log 2>&1
+        mariadb -e "INSTALL SONAME 'provider_lz4';" > $NOPANEL_LOG/debug.log 2>&1
+        mariadb -e "INSTALL SONAME 'provider_lzma';" > $NOPANEL_LOG/debug.log 2>&1
     fi
 
     nplib_modules_set_installed 'mariadb' 'true'
