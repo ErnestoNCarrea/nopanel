@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nopanel_module_php-fpm_add() {
+nopanel_module_php-fpm_del() {
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/module.inc
     nplib_require $NOPANEL_LIB/php.inc
