@@ -1,0 +1,64 @@
+#!/bin/bash
+
+nopanel_module_php-fpm_add() {
+    nplib_auto_elevate
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/php.inc
+
+    if ! nplib_modules_get_installed 'php-fpm'; then
+        nplib_command_output 'error' 'PHP (FPM) module not installed'
+        return
+    fi
+    if [[ ! "$param_version" ]]; then
+        nplib_command_output 'error' 'PHP version not specified (--version)'
+        return
+    fi
+
+    if [ "$param_version" = 'default' ]; then
+        param_version="$PHP_DEFAULT_VERSION"
+    fi
+
+    # Verify php version format
+    if [[ ! "$param_version" =~ ^[0-9]\.[0-9]+ ]]; then
+        nplib_command_output 'error' 'The PHP (FPM) version is invalid'
+        return
+    fi
+
+    # Check version is supported
+    php_version=''
+    for ver in $PHP_SUPPORTED_VERSIONS; do
+        if [ "$param_version" == "$ver" ]; then
+            php_version="$param_version"
+            break;
+        fi
+    done
+    if [[ ! "$php_version" ]]; then
+        nplib_command_output 'error' "PHP (FPM) version $param_version is not supported"
+        return
+    fi
+
+    nplib_command_echo "Adding PHP (FPM) version $param_version"
+
+    local php_prefix=$(osal_php_package_prefix $param_version)
+
+    PACKAGES="$php_prefix-bcmath $php_prefix-cli $php_prefix-curl
+        $php_prefix-gd $php_prefix-intl $php_prefix-mbstring 
+        $php_prefix-soap $php_prefix-xml $php_prefix-zip
+        $php_prefix-bz2 $php_prefix-pspell $php_prefix-imagick $php_prefix-pgsql
+        $php_prefix-imap $php_prefix-ldap $php_prefix-opcache
+        $php_prefix-pecl-memcache $php_prefix-pecl-memcached
+        "
+    # Disable and stop services
+    osal_execute osal_service_disable $php_prefix-fpm
+    osal_execute osal_service_stop $php_prefix-fpm
+
+    # Remove php packages
+    osal_execute osal_package_remove $PACKAGES
+
+    WEB_SERVER=$(nplib_modules_get 'web' 'server')
+    nplib_command_echo " - Configuring for $WEB_SERVER"
+
+    nplib_modules_set 'php-fpm' "$param_version" 'false'
+
+    nplib_command_output 'ok' "PHP (FPM) version $param_version removed"
+}
