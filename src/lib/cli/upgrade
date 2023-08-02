@@ -16,6 +16,11 @@ nopanel_upgrade() {
     mkdir -p $NOPANEL_ETC/pki
     mkdir -p /var/www/html/.well-known/acme-challenge
 
+    mkdir -p $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG
+    chmod 0770 $NOPANEL_STATE $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG
+    chown root:nopanel-admins $NOPANEL_ETC $NOPANEL_STATE/committed $NOPANEL_LOG 
+    chmod g+rs $NOPANEL_ETC $NOPANEL_LOG
+
     # update version
     osal_json_set "/etc/nopanel/nopanel.json" ".version=\"$NOPANEL_VERSION\""
 
