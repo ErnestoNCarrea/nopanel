@@ -66,12 +66,12 @@ nopanel_db_rebuild_user_db() {
 
     nplib_command_echo "- Configuring database $param_user/$param_db"
     
-    nopanel_db_mysql_query "CREATE DATABASE IF NOT EXISTS \`$DB_FULLNAME\`"
+    nopanel_db_query "CREATE DATABASE IF NOT EXISTS \`$DB_FULLNAME\`"
 
     local DB_PASSWORD=$(nplib_databases_get "$DB_FULLNAME" 'password')
     if [[ "$DB_PASSWORD" ]]; then
-        nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
-        nopanel_db_mysql_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`localhost\` IDENTIFIED BY '$DB_PASSWORD'"
+        nopanel_db_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
+        nopanel_db_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`localhost\` IDENTIFIED BY '$DB_PASSWORD'"
         local DB_PASSWORD=$(nplib_databases_set "$DB_FULLNAME" 'password' '')
     fi
 }
@@ -82,11 +82,11 @@ nopanel_db_delete_user_db() {
     local DB_FULLUSER="${param_user}_${DB_USER}"
 
     nplib_command_echo "- Dropping database $param_user/$param_db"
-    nopanel_db_mysql_query "DROP DATABASE IF EXISTS \`$DB_FULLNAME\`"
-    nopanel_db_mysql_query "DROP USER IF EXISTS \`$DB_FULLUSER\`"
+    nopanel_db_query "DROP DATABASE IF EXISTS \`$DB_FULLNAME\`"
+    nopanel_db_query "DROP USER IF EXISTS \`$DB_FULLUSER\`"
 }
 
-nopanel_db_mysql_query() {
+nopanel_db_query() {
     nplib_command_log "MariaDB: $1"
-    echo "$@" | mysql
+    echo "$@" | mariadb
 }

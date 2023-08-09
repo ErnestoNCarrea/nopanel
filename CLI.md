@@ -45,6 +45,7 @@ nopanel [--output json|plain] [--interactive [yes|no]]
 [n]     module php-fpm info
 [Ri]    module php-fpm install
 [Ri]    module php-fpm add [--version MAJOR.MINOR]
+[Ri]    module php-fpm del [--version MAJOR.MINOR]
 ```
 
 Ref.:

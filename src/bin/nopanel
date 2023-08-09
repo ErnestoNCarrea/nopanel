@@ -2,7 +2,7 @@
 # noPanel main entry point
 # © Ernesto N. Carrea / https://www.nopanel.cc
 
-NOPANEL_VERSION=1.0.1
+NOPANEL_VERSION=1.0.19
 
 # Get correct paths from current script
 pushd . > /dev/null
