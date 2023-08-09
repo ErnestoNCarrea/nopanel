@@ -52,6 +52,12 @@ nopanel_init() {
         osal_execute osal_package_install epel-release
     fi
 
+    if [ "$OS_BASE" = 'rhel' ]; then
+        nplib_command_echo "- Enabling PowerTools CRB repository"
+        dnf config-manager --set-enabled crb > /dev/null
+        dnf config-manager --set-enabled powertools > /dev/null
+    fi
+
     nplib_command_echo "- Enabling SFTP jails"
     # disable internal SFTP
     sed -i "s/^Subsystem.*sftp-server$/#Subsystem.*sftp-server/" $OSAL_SSHD_CONFIG
