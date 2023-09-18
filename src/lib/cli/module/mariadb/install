@@ -94,7 +94,7 @@ EOL
     mariadb -e "DELETE FROM mysql.user WHERE user='';" > $NOPANEL_LOG/debug.log 2>&1
     mariadb -e "DELETE FROM mysql.user WHERE password='' AND authentication_string='';" > $NOPANEL_LOG/debug.log 2>&1
     mariadb -e "DROP DATABASE test" > $NOPANEL_LOG/debug.log 2>&1
-    mariadb -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}')\";" > $NOPANEL_LOG/debug.log 2>&1
+    mariadb -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}');" > $NOPANEL_LOG/debug.log 2>&1
     mariadb -e "FLUSH PRIVILEGES;" > $NOPANEL_LOG/debug.log 2>&1
 
     if [ "$OS_BASE" = 'rhel' ]; then
