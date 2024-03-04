@@ -6,7 +6,7 @@ nopanel_module_mariadb_install() {
     nplib_require $NOPANEL_LIB/module.inc
     nplib_auto_elevate
 
-    local mariadb_version='11.2'
+    local mariadb_version='11.3'
 
     osal_execute osal_service_stop $OSAL_SERVICE_MARIADB
     nplib_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
