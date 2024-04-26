@@ -1,15 +1,18 @@
 ## noPanel
 
-A multi-user CLI-only web server manager, with Apache, Let's Encrypt, MariaDB and multi-version PHP support.
+A panel-less web panel.
+
+noPanel is a multi-user, CLI-only web server manager, with Apache, Let's Encrypt, MariaDB and multi-version PHP support.
 
 Written entirely in Bash, with minimal dependencies.
 
 ### noPanel command line interface
 
 ```bash
-nopanel [--output json|plain] [--interactive [yes|no]]
+nopanel [--output json|plain] [--interactive [yes|no]] SUB_COMMAND
 ```
 
+Where SUB_COMMAND is:
 
 ```bash
 [n]     ver
