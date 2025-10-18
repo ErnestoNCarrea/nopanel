@@ -1,5 +1,6 @@
 #!/bin/bash
 # noPanel Build Script
+# Needs: sudo dnf install -y rpmdevtools rpm-build
 # Usage: ./build.sh [-i] [-b]
 #   -i  Increment release number
 #   -b  Build RPM package
