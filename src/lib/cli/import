@@ -14,12 +14,14 @@ nopanel_import() {
         echo "  --domains           Import only domains (default: import all)"
         echo "  --databases         Import only databases (default: import all)"
         echo "  --skip-existing     Skip items that already exist instead of failing"
+        echo "  --overwrite         Update existing items with imported data"
         echo "  --dry-run           Show what would be imported without making changes"
         echo "  --default-password  Default password for imported users (default: 'ChangeMe123!')"
         echo ""
         echo "Examples:"
         echo "  nopanel import --file=backup.json"
         echo "  nopanel import --file=users.json --users --skip-existing"
+        echo "  nopanel import --file=backup.json --overwrite"
         echo "  nopanel import --file=backup.json --dry-run"
         return
     fi
@@ -128,8 +130,28 @@ nopanel_import_users() {
             if nplib_users_exists "$username"; then
                 if [[ "$param_skip_existing" ]]; then
                     nplib_command_echo "    Skipping existing user: $username"
+                    ((user_index++))
+                    continue
+                    elif [[ "$param_overwrite" ]]; then
+                    nplib_command_echo "    Updating existing user: $username"
+                    
+                    # Update user properties
+                    local mod_cmd="nopanel user mod --user='$username'"
+                    [[ -n "$email" && "$email" != "null" ]] && mod_cmd="$mod_cmd --email='$email'"
+                    [[ -n "$fullname" && "$fullname" != "null" ]] && mod_cmd="$mod_cmd --fullname='$fullname'"
+                    [[ -n "$login" && "$login" != "null" ]] && mod_cmd="$mod_cmd --login='$login'"
+                    [[ -n "$admin" && "$admin" != "null" ]] && mod_cmd="$mod_cmd --admin='$admin'"
+                    
+                    if ! eval "$mod_cmd" >/dev/null 2>&1; then
+                        nplib_command_echo "    ERROR: Failed to update user: $username"
+                    else
+                        nopanel user commit --user="$username" >/dev/null 2>&1
+                    fi
+                    
+                    ((user_index++))
+                    continue
                 else
-                    nplib_command_echo "    ERROR: User already exists: $username (use --skip-existing to skip)"
+                    nplib_command_echo "    ERROR: User already exists: $username (use --skip-existing to skip or --overwrite to update)"
                     ((user_index++))
                     continue
                 fi
@@ -205,11 +227,39 @@ nopanel_import_domains() {
             if nplib_domains_exists "$domain_name"; then
                 if [[ "$param_skip_existing" ]]; then
                     nplib_command_echo "    Skipping existing domain: $domain_name"
+                    ((domain_index++))
+                    continue
+                    elif [[ "$param_overwrite" ]]; then
+                    nplib_command_echo "    Updating existing domain: $domain_name"
+                    
+                    # Update domain properties
+                    local mod_cmd="nopanel web domain mod --user='$domain_user' --domain='$domain_name'"
+                    local needs_mod=false
+                    
+                    if [[ -n "$web_aliases" && "$web_aliases" != "null" ]]; then
+                        mod_cmd="$mod_cmd --aliases='$web_aliases'"
+                        needs_mod=true
+                    fi
+                    if [[ -n "$web_ssl" && "$web_ssl" != "null" ]]; then
+                        mod_cmd="$mod_cmd --ssl='$web_ssl'"
+                        needs_mod=true
+                    fi
+                    if [[ -n "$web_php" && "$web_php" != "null" ]]; then
+                        mod_cmd="$mod_cmd --php='$web_php'"
+                        needs_mod=true
+                    fi
+                    
+                    if [[ "$needs_mod" == "true" ]]; then
+                        eval "$mod_cmd --commit" >/dev/null 2>&1
+                    fi
+                    
+                    ((domain_index++))
+                    continue
                 else
-                    nplib_command_echo "    ERROR: Domain already exists: $domain_name (use --skip-existing to skip)"
+                    nplib_command_echo "    ERROR: Domain already exists: $domain_name (use --skip-existing to skip or --overwrite to update)"
+                    ((domain_index++))
+                    continue
                 fi
-                ((domain_index++))
-                continue
             fi
             
             nplib_command_echo "    Creating domain: $domain_name for user: $domain_user"
@@ -292,11 +342,24 @@ nopanel_import_databases() {
             if nplib_databases_exists "$DB_FULLNAME"; then
                 if [[ "$param_skip_existing" ]]; then
                     nplib_command_echo "    Skipping existing database: $db_name"
+                    ((db_index++))
+                    continue
+                    elif [[ "$param_overwrite" ]]; then
+                    nplib_command_echo "    Updating existing database: $db_name"
+                    
+                    # Update database user if different
+                    if [[ -n "$db_dbuser" && "$db_dbuser" != "null" ]]; then
+                        local db_password=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+                        nopanel database mod --user="$db_user" --db="$db_name" --dbuser="$db_dbuser" --password="$db_password" >/dev/null 2>&1
+                    fi
+                    
+                    ((db_index++))
+                    continue
                 else
-                    nplib_command_echo "    ERROR: Database already exists: $db_name (use --skip-existing to skip)"
+                    nplib_command_echo "    ERROR: Database already exists: $db_name (use --skip-existing to skip or --overwrite to update)"
+                    ((db_index++))
+                    continue
                 fi
-                ((db_index++))
-                continue
             fi
             
             nplib_command_echo "    Creating database: $db_name for user: $db_user"
