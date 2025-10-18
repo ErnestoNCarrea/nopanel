@@ -1,0 +1,127 @@
+#!/bin/bash
+
+nopanel_export() {
+    nplib_command_echo "= Export noPanel configuration"
+
+    if [[ "$param_help" ]]; then
+        echo "Usage:"
+        echo ""
+        echo "  export [--output=FILE] [--users] [--domains] [--databases]"
+        echo ""
+        echo "Options:"
+        echo "  --output=FILE    Write export to file instead of stdout"
+        echo "  --users          Export only users (default: export all)"
+        echo "  --domains        Export only domains (default: export all)"
+        echo "  --databases      Export only databases (default: export all)"
+        echo ""
+        echo "Examples:"
+        echo "  nopanel export --output=backup.json"
+        echo "  nopanel export --users --output=users.json"
+        echo "  nopanel export > full-backup.json"
+        return
+    fi
+
+    nplib_require $NOPANEL_LIB/user.inc
+    nplib_require $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/database.inc
+
+    # Determine what to export
+    local export_users=false
+    local export_domains=false
+    local export_databases=false
+
+    if [[ "$param_users" ]] || [[ "$param_domains" ]] || [[ "$param_databases" ]]; then
+        # Export only what was specified
+        [[ "$param_users" ]] && export_users=true
+        [[ "$param_domains" ]] && export_domains=true
+        [[ "$param_databases" ]] && export_databases=true
+    else
+        # Export everything
+        export_users=true
+        export_domains=true
+        export_databases=true
+    fi
+
+    # Build the JSON export
+    local json_parts=()
+    
+    if [[ "$export_users" == "true" ]]; then
+        nplib_command_echo "- Exporting users" >&2
+        local users_json=$(nopanel_export_users)
+        json_parts+=("\"users\": $users_json")
+    fi
+
+    if [[ "$export_domains" == "true" ]]; then
+        nplib_command_echo "- Exporting domains" >&2
+        local domains_json=$(nopanel_export_domains)
+        json_parts+=("\"domains\": $domains_json")
+    fi
+
+    if [[ "$export_databases" == "true" ]]; then
+        nplib_command_echo "- Exporting databases" >&2
+        local databases_json=$(nopanel_export_databases)
+        json_parts+=("\"databases\": $databases_json")
+    fi
+
+    # Combine into final JSON
+    local export_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local json_output=$(printf '{\n  "exportDate": "%s",\n  "version": "%s",\n  %s\n}' \
+        "$export_date" \
+        "$NOPANEL_VERSION" \
+        "$(IFS=',\n  '; echo "${json_parts[*]}")")
+
+    # Output to file or stdout
+    if [[ "$param_output" ]]; then
+        echo "$json_output" > "$param_output"
+        nplib_command_output 'ok' "Configuration exported to $param_output"
+    else
+        echo "$json_output"
+    fi
+}
+
+nopanel_export_users() {
+    local users_json=$(osal_json_get "$NOPANEL_ETC/users.json" ".")
+    
+    # Remove password fields for security
+    users_json=$(echo "$users_json" | jq 'walk(if type == "object" then del(.password) else . end)')
+    
+    echo "$users_json"
+}
+
+nopanel_export_domains() {
+    local all_domains='[]'
+    
+    # Iterate through all users and collect their domains
+    for user in $(nplib_users_list); do
+        if [[ -f "$NOPANEL_HOME/$user/.nopanel/domains.json" ]]; then
+            local user_domains=$(osal_json_get "$NOPANEL_HOME/$user/.nopanel/domains.json" ".")
+            
+            # Add user field to each domain and append to array
+            if [[ "$user_domains" != "{}" ]]; then
+                all_domains=$(echo "$all_domains" | jq --arg user "$user" --argjson domains "$user_domains" \
+                    '. + (($domains | to_entries) | map(.value + {user: $user}))')
+            fi
+        fi
+    done
+    
+    echo "$all_domains"
+}
+
+nopanel_export_databases() {
+    local all_databases='[]'
+    
+    # Iterate through all users and collect their databases
+    for user in $(nplib_users_list); do
+        if [[ -f "$NOPANEL_HOME/$user/.nopanel/databases.json" ]]; then
+            local user_databases=$(osal_json_get "$NOPANEL_HOME/$user/.nopanel/databases.json" ".")
+            
+            # Add user field to each database and append to array
+            if [[ "$user_databases" != "{}" ]]; then
+                all_databases=$(echo "$all_databases" | jq --arg user "$user" --argjson databases "$user_databases" \
+                    '. + (($databases | to_entries) | map(.value + {user: $user, fullname: .key}))')
+            fi
+        fi
+    done
+    
+    echo "$all_databases"
+}

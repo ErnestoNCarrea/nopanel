@@ -1,0 +1,321 @@
+#!/bin/bash
+
+nopanel_import() {
+    nplib_command_echo "= Import noPanel configuration"
+    
+    if [[ "$param_help" ]]; then
+        echo "Usage:"
+        echo ""
+        echo "  import --file=FILE [--users] [--domains] [--databases] [--skip-existing] [--dry-run]"
+        echo ""
+        echo "Options:"
+        echo "  --file=FILE         JSON file to import (required)"
+        echo "  --users             Import only users (default: import all)"
+        echo "  --domains           Import only domains (default: import all)"
+        echo "  --databases         Import only databases (default: import all)"
+        echo "  --skip-existing     Skip items that already exist instead of failing"
+        echo "  --dry-run           Show what would be imported without making changes"
+        echo "  --default-password  Default password for imported users (default: 'ChangeMe123!')"
+        echo ""
+        echo "Examples:"
+        echo "  nopanel import --file=backup.json"
+        echo "  nopanel import --file=users.json --users --skip-existing"
+        echo "  nopanel import --file=backup.json --dry-run"
+        return
+    fi
+    
+    if [[ ! "$param_file" ]]; then
+        nplib_command_output 'error' 'Import file not specified (--file)'
+        return 1
+    fi
+    
+    if [[ ! -f "$param_file" ]]; then
+        nplib_command_output 'error' "Import file not found: $param_file"
+        return 1
+    fi
+    
+    # Validate JSON
+    if ! jq empty "$param_file" 2>/dev/null; then
+        nplib_command_output 'error' "Invalid JSON in file: $param_file"
+        return 1
+    fi
+    
+    nplib_require $NOPANEL_LIB/user.inc
+    nplib_require $NOPANEL_LIB/domain.inc
+    nplib_require $NOPANEL_LIB/database.inc
+    
+    # Set default password if not specified
+    [[ "$param_default_password" ]] || param_default_password='ChangeMe123!'
+    
+    # Determine what to import
+    local import_users=false
+    local import_domains=false
+    local import_databases=false
+    
+    if [[ "$param_users" ]] || [[ "$param_domains" ]] || [[ "$param_databases" ]]; then
+        # Import only what was specified
+        [[ "$param_users" ]] && import_users=true
+        [[ "$param_domains" ]] && import_domains=true
+        [[ "$param_databases" ]] && import_databases=true
+    else
+        # Import everything
+        import_users=true
+        import_domains=true
+        import_databases=true
+    fi
+    
+    local import_errors=0
+    
+    # Import users first (dependencies)
+    if [[ "$import_users" == "true" ]]; then
+        nplib_command_echo "- Importing users"
+        if ! nopanel_import_users "$param_file"; then
+            ((import_errors++))
+        fi
+    fi
+    
+    # Import domains (depends on users)
+    if [[ "$import_domains" == "true" ]]; then
+        nplib_command_echo "- Importing domains"
+        if ! nopanel_import_domains "$param_file"; then
+            ((import_errors++))
+        fi
+    fi
+    
+    # Import databases (depends on users)
+    if [[ "$import_databases" == "true" ]]; then
+        nplib_command_echo "- Importing databases"
+        if ! nopanel_import_databases "$param_file"; then
+            ((import_errors++))
+        fi
+    fi
+    
+    if [[ "$param_dry_run" ]]; then
+        nplib_command_output 'ok' "Dry run completed (no changes made)"
+        elif [[ $import_errors -eq 0 ]]; then
+        nplib_command_output 'ok' "Import completed successfully"
+    else
+        nplib_command_output 'error' "Import completed with $import_errors error(s)"
+        return 1
+    fi
+}
+
+nopanel_import_users() {
+    local import_file="$1"
+    local users_count=$(jq -r '.users // {} | length' "$import_file")
+    
+    if [[ "$users_count" == "0" ]]; then
+        nplib_command_echo "  No users to import"
+        return 0
+    fi
+    
+    nplib_command_echo "  Found $users_count user(s) to import"
+    
+    local user_index=0
+    while true; do
+        local username=$(jq -r --arg idx "$user_index" '.users | to_entries | .[$idx | tonumber] | .key // empty' "$import_file")
+        [[ -z "$username" ]] && break
+        
+        local fullname=$(jq -r --arg user "$username" '.users[$user] | .fullname // ""' "$import_file")
+        local email=$(jq -r --arg user "$username" '.users[$user] | .email // ""' "$import_file")
+        local login=$(jq -r --arg user "$username" '.users[$user] | .login // ""' "$import_file")
+        local admin=$(jq -r --arg user "$username" '.users[$user] | .admin // ""' "$import_file")
+        
+        if [[ "$param_dry_run" ]]; then
+            nplib_command_echo "    [DRY RUN] Would create user: $username"
+        else
+            # Check if user exists
+            if nplib_users_exists "$username"; then
+                if [[ "$param_skip_existing" ]]; then
+                    nplib_command_echo "    Skipping existing user: $username"
+                else
+                    nplib_command_echo "    ERROR: User already exists: $username (use --skip-existing to skip)"
+                    ((user_index++))
+                    continue
+                fi
+            else
+                nplib_command_echo "    Creating user: $username"
+                
+                # Build the add command
+                local add_cmd="nopanel user add --user='$username' --password='$param_default_password'"
+                [[ -n "$email" && "$email" != "null" ]] && add_cmd="$add_cmd --email='$email'"
+                [[ -n "$fullname" && "$fullname" != "null" ]] && add_cmd="$add_cmd --fullname='$fullname'"
+                
+                # Execute add command
+                if ! eval "$add_cmd" >/dev/null 2>&1; then
+                    nplib_command_echo "    ERROR: Failed to create user: $username"
+                    ((user_index++))
+                    continue
+                fi
+                
+                # Set additional properties
+                if [[ -n "$login" && "$login" != "null" ]]; then
+                    nopanel user mod --user="$username" --login="$login" >/dev/null 2>&1
+                fi
+                if [[ -n "$admin" && "$admin" != "null" ]]; then
+                    nopanel user mod --user="$username" --admin="$admin" >/dev/null 2>&1
+                fi
+                
+                # Commit the user
+                nopanel user commit --user="$username" >/dev/null 2>&1
+            fi
+        fi
+        
+        ((user_index++))
+    done
+    
+    return 0
+}
+
+nopanel_import_domains() {
+    local import_file="$1"
+    local domains_count=$(jq -r '.domains // [] | length' "$import_file")
+    
+    if [[ "$domains_count" == "0" ]]; then
+        nplib_command_echo "  No domains to import"
+        return 0
+    fi
+    
+    nplib_command_echo "  Found $domains_count domain(s) to import"
+    
+    local domain_index=0
+    while [[ $domain_index -lt $domains_count ]]; do
+        local domain_name=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .name // empty' "$import_file")
+        [[ -z "$domain_name" ]] && break
+        
+        local domain_user=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .user // ""' "$import_file")
+        local web_aliases=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .web_aliases // ""' "$import_file")
+        local web_ssl=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .web_ssl // ""' "$import_file")
+        local web_php=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .web_php // ""' "$import_file")
+        
+        if [[ "$param_dry_run" ]]; then
+            nplib_command_echo "    [DRY RUN] Would create domain: $domain_name for user: $domain_user"
+        else
+            # Check if user exists
+            if ! nplib_users_exists "$domain_user"; then
+                nplib_command_echo "    ERROR: User does not exist for domain $domain_name: $domain_user"
+                ((domain_index++))
+                continue
+            fi
+            
+            # Set param_user for domain operations
+            param_user="$domain_user"
+            
+            # Check if domain exists
+            if nplib_domains_exists "$domain_name"; then
+                if [[ "$param_skip_existing" ]]; then
+                    nplib_command_echo "    Skipping existing domain: $domain_name"
+                else
+                    nplib_command_echo "    ERROR: Domain already exists: $domain_name (use --skip-existing to skip)"
+                fi
+                ((domain_index++))
+                continue
+            fi
+            
+            nplib_command_echo "    Creating domain: $domain_name for user: $domain_user"
+            
+            # Build the add command
+            local add_cmd="nopanel web domain add --user='$domain_user' --domain='$domain_name'"
+            
+            # Execute add command
+            if ! eval "$add_cmd" >/dev/null 2>&1; then
+                nplib_command_echo "    ERROR: Failed to create domain: $domain_name"
+                ((domain_index++))
+                continue
+            fi
+            
+            # Set additional properties
+            local mod_cmd="nopanel web domain mod --user='$domain_user' --domain='$domain_name'"
+            local needs_mod=false
+            
+            if [[ -n "$web_aliases" && "$web_aliases" != "null" ]]; then
+                mod_cmd="$mod_cmd --aliases='$web_aliases'"
+                needs_mod=true
+            fi
+            if [[ -n "$web_ssl" && "$web_ssl" != "null" ]]; then
+                mod_cmd="$mod_cmd --ssl='$web_ssl'"
+                needs_mod=true
+            fi
+            if [[ -n "$web_php" && "$web_php" != "null" ]]; then
+                mod_cmd="$mod_cmd --php='$web_php'"
+                needs_mod=true
+            fi
+            
+            if [[ "$needs_mod" == "true" ]]; then
+                eval "$mod_cmd --commit" >/dev/null 2>&1
+            else
+                nopanel web domain commit --user="$domain_user" --domain="$domain_name" >/dev/null 2>&1
+            fi
+        fi
+        
+        ((domain_index++))
+    done
+    
+    return 0
+}
+
+nopanel_import_databases() {
+    local import_file="$1"
+    local databases_count=$(jq -r '.databases // [] | length' "$import_file")
+    
+    if [[ "$databases_count" == "0" ]]; then
+        nplib_command_echo "  No databases to import"
+        return 0
+    fi
+    
+    nplib_command_echo "  Found $databases_count database(s) to import"
+    
+    local db_index=0
+    while [[ $db_index -lt $databases_count ]]; do
+        local db_name=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .name // empty' "$import_file")
+        [[ -z "$db_name" ]] && break
+        
+        local db_user=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .user // ""' "$import_file")
+        local db_dbuser=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .dbuser // ""' "$import_file")
+        local db_type=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .type // "mariadb"' "$import_file")
+        
+        if [[ "$param_dry_run" ]]; then
+            nplib_command_echo "    [DRY RUN] Would create database: $db_name for user: $db_user"
+        else
+            # Check if user exists
+            if ! nplib_users_exists "$db_user"; then
+                nplib_command_echo "    ERROR: User does not exist for database $db_name: $db_user"
+                ((db_index++))
+                continue
+            fi
+            
+            # Set param_user for database operations
+            param_user="$db_user"
+            local DB_FULLNAME="${db_user}_${db_name}"
+            
+            # Check if database exists
+            if nplib_databases_exists "$DB_FULLNAME"; then
+                if [[ "$param_skip_existing" ]]; then
+                    nplib_command_echo "    Skipping existing database: $db_name"
+                else
+                    nplib_command_echo "    ERROR: Database already exists: $db_name (use --skip-existing to skip)"
+                fi
+                ((db_index++))
+                continue
+            fi
+            
+            nplib_command_echo "    Creating database: $db_name for user: $db_user"
+            
+            # Generate a random password for the database
+            local db_password=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+            
+            # Build the add command
+            local add_cmd="nopanel database add --user='$db_user' --db='$db_name' --password='$db_password'"
+            [[ -n "$db_dbuser" && "$db_dbuser" != "null" ]] && add_cmd="$add_cmd --dbuser='$db_dbuser'"
+            
+            # Execute add command
+            if ! eval "$add_cmd" >/dev/null 2>&1; then
+                nplib_command_echo "    ERROR: Failed to create database: $db_name"
+            fi
+        fi
+        
+        ((db_index++))
+    done
+    
+    return 0
+}

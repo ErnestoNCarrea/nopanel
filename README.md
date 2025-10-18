@@ -53,6 +53,9 @@ Where SUB_COMMAND is:
 [Ri]    module php-fpm install
 [Ri]    module php-fpm add [--version MAJOR.MINOR]
 [Ri]    module php-fpm del [--version MAJOR.MINOR]
+
+[n]     export [--output FILE] [--users] [--domains] [--databases]
+[Ri]    import --file FILE [--users] [--domains] [--databases] [--skip-existing] [--dry-run] [--default-password PASS]
 ```
 
 Ref.:
@@ -62,6 +65,21 @@ Ref.:
 [d] May disrupt service
 [c] Takes effect on commit
 
+### Export/Import
+
+Use `nopanel export` and `nopanel import` to backup and restore your entire noPanel configuration.
+
+```bash
+# Export everything to a JSON file
+nopanel export --output=backup.json
+
+# Import from a backup file
+nopanel import --file=backup.json --dry-run  # test first
+nopanel import --file=backup.json            # actual import
+```
+
+See [docs/export-import.md](docs/export-import.md) for complete documentation.
+
 ### BYOJ (Bring Your Own Json)
 
 /etc/nopanel/users.json (root only)
@@ -69,3 +87,25 @@ Ref.:
 ~/.nopanel/databases.json
 
 Just edit and then run `nopanel commit --reload` to apply changes.
+
+### Testing
+
+Run structural tests to validate command structure:
+
+```bash
+./test/test_export_import.sh
+```
+
+See [test/README.md](test/README.md) for more information.
+
+### Building
+
+Build RPM packages using the build script:
+
+```bash
+./build.sh -i        # Increment release number
+./build.sh -b        # Build RPM package
+./build.sh -i -b     # Increment and build
+```
+
+RPM packages will be created in `~/rpmbuild/RPMS/noarch/`.
