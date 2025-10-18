@@ -2,17 +2,17 @@
 
 nopanel_database_commit() {
     nplib_command_echo "= Commit database configuration"
-
+    
     if [[ "$param_help" ]]; then
         nopanel db help
         return
     fi
-
+    
     nplib_auto_elevate
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/database.inc
     nplib_require $NOPANEL_LIB/commit.inc
-
+    
     if [[ "$param_user" ]]; then
         nopanel_db_rebuild_user "$param_user"
     else
@@ -22,7 +22,7 @@ nopanel_database_commit() {
         done
         unset param_user
     fi
-
+    
     nplib_command_output 'ok' 'Database configuration applied'
 }
 
@@ -41,12 +41,12 @@ nopanel_db_rebuild_user() {
                 local DELETED=$(nplib_commits_get_deleted $NOPANEL_HOME/$param_user/.nopanel/databases.json)
                 local CHANGED=$(nplib_commits_get_changed $NOPANEL_HOME/$param_user/.nopanel/databases.json)
             fi
-
+            
             for DB_FULLNAME in $DELETED; do
                 param_db=$(nplib_databases_get "$DB_FULLNAME" 'name')
                 nopanel_db_delete_user_db
             done
-
+            
             for DB_FULLNAME in $CHANGED; do
                 param_db=$(nplib_databases_get "$DB_FULLNAME" 'name')
                 nopanel_db_rebuild_user_db
@@ -54,7 +54,7 @@ nopanel_db_rebuild_user() {
         done
         unset param_db
     fi
-
+    
     nplib_commits_save $NOPANEL_HOME/$param_user/.nopanel/databases.json
 }
 
@@ -63,16 +63,15 @@ nopanel_db_rebuild_user_db() {
     local DB_FULLNAME="${param_user}_${param_db}"
     local DB_USER=$(nplib_databases_get "$DB_FULLNAME" 'dbuser')
     local DB_FULLUSER="${param_user}_${DB_USER}"
-
+    
     nplib_command_echo "- Configuring database $param_user/$param_db"
     
     nopanel_db_query "CREATE DATABASE IF NOT EXISTS \`$DB_FULLNAME\`"
-
+    
     local DB_PASSWORD=$(nplib_databases_get "$DB_FULLNAME" 'password')
     if [[ "$DB_PASSWORD" ]]; then
         nopanel_db_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`%\` IDENTIFIED BY '$DB_PASSWORD'"
         nopanel_db_query "GRANT ALL ON \`$DB_FULLNAME\`.* TO \`$DB_FULLUSER\`@\`localhost\` IDENTIFIED BY '$DB_PASSWORD'"
-        local DB_PASSWORD=$(nplib_databases_set "$DB_FULLNAME" 'password' '')
     fi
 }
 
@@ -80,7 +79,7 @@ nopanel_db_delete_user_db() {
     local DB_FULLNAME="${param_user}_${param_db}"
     local DB_USER=$(nplib_databases_get "$DB_FULLNAME" 'dbuser')
     local DB_FULLUSER="${param_user}_${DB_USER}"
-
+    
     nplib_command_echo "- Dropping database $param_user/$param_db"
     nopanel_db_query "DROP DATABASE IF EXISTS \`$DB_FULLNAME\`"
     nopanel_db_query "DROP USER IF EXISTS \`$DB_FULLUSER\`"
