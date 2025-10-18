@@ -5,8 +5,8 @@
 nplib_original_params="$@"
 
 # Search for command file
-local cmd_name=''
-local cmd_file=''
+cmd_name=''
+cmd_file=''
 for arg in "$@"
 do
     # FIXME: secutirity (what if $arg is something like ../../../malicious_code)
@@ -22,7 +22,7 @@ do
         cmd_type='include'
         shift
         break
-    elif [ -d "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
+        elif [ -d "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
         # Keep looking inside dirs
         if [ $cmd_name ]; then
             cmd_name="${cmd_name}_${arg}"
@@ -33,7 +33,7 @@ do
         fi
         cmd_type='dir'
         shift
-    elif [ -x "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
+        elif [ -x "$NOPANEL_LIB_CLI/$cmd_file/${arg}" ]; then
         # Look for regular executable file
         if [ $cmd_name ]; then
             cmd_name="${cmd_name}_${arg}"
@@ -45,7 +45,7 @@ do
         cmd_type='executable'
         shift
         break
-    elif [ "$cmd_file" ]; then
+        elif [ "$cmd_file" ]; then
         # We have a partial path, but component not found
         cmd_type='not-found'
         return 1
@@ -53,7 +53,7 @@ do
     fi
 done
 
-# Process the rest of the arguments as --arg or --arg value
+# Process the rest of the arguments as --arg or --arg=value or --arg value
 # https://brianchildress.co/named-parameters-in-bash/
 params=''
 for param in "$@"
@@ -64,10 +64,24 @@ do
             # Previous --arg is empty, so set it to true before continuing
             declare $param_name=1
         fi
-        param_name=$(echo "param_${param:2}" | sed 's/-/_/')    # trim --, replace - with _
-        # Add param_name to the list of used params (unless it's there already)
-        [[ $params =~ (^|[[:space:]])$param_name($|[[:space:]]) ]] || params="$params $param_name"
-        last_was='name'
+        
+        # Check if parameter has = sign (--param=value format)
+        if [[ $param == *"="* ]]; then
+            # Split on first = sign
+            param_name=$(echo "param_${param:2}" | cut -d'=' -f1 | sed 's/-/_/')
+            param_value=$(echo "$param" | cut -d'=' -f2-)
+            # Add param_name to the list of used params (unless it's there already)
+            [[ $params =~ (^|[[:space:]])$param_name($|[[:space:]]) ]] || params="$params $param_name"
+            declare $param_name="$param_value"
+            param_name=''  # Clear so we don't process it again
+            last_was='value'
+        else
+            # Regular --param format (value comes next)
+            param_name=$(echo "param_${param:2}" | sed 's/-/_/')    # trim --, replace - with _
+            # Add param_name to the list of used params (unless it's there already)
+            [[ $params =~ (^|[[:space:]])$param_name($|[[:space:]]) ]] || params="$params $param_name"
+            last_was='name'
+        fi
     else
         # Not a --parameter, so it's a value
         if [ "$param_name" ]; then
