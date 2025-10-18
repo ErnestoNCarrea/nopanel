@@ -75,7 +75,9 @@ nopanel export --output=backup.json
 
 # Import from a backup file
 nopanel import --file=backup.json --dry-run  # test first
-nopanel import --file=backup.json            # actual import
+nopanel import --file=backup.json --users
+nopanel commit
+nopanel import --file=backup.json --skip-existing
 ```
 
 See [docs/export-import.md](docs/export-import.md) for complete documentation.
