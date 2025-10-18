@@ -26,17 +26,17 @@ while getopts "ib" opt; do
     case $opt in
         i)
             INCREMENT=true
-            ;;
+        ;;
         b)
             BUILD_RPM=true
-            ;;
+        ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
             echo "Usage: $0 [-i] [-b]"
             echo "  -i  Increment release number"
             echo "  -b  Build RPM package"
             exit 1
-            ;;
+        ;;
     esac
 done
 
