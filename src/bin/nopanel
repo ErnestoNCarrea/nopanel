@@ -2,14 +2,14 @@
 # noPanel main entry point
 # © Ernesto N. Carrea / https://www.nopanel.cc
 
-NOPANEL_VERSION=1.0.26
+NOPANEL_VERSION=1.0.27
 
 # Get correct paths from current script
 pushd . > /dev/null
 NOPANEL_BIN="${BASH_SOURCE[0]}"
 if ([ -h "${NOPANEL_BIN}" ]); then
-  while([ -h "${NOPANEL_BIN}" ]); do cd `dirname "$NOPANEL_BIN"`;
-  NOPANEL_BIN=`readlink "${NOPANEL_BIN}"`; done
+    while([ -h "${NOPANEL_BIN}" ]); do cd `dirname "$NOPANEL_BIN"`;
+    NOPANEL_BIN=`readlink "${NOPANEL_BIN}"`; done
 fi
 cd `dirname ${NOPANEL_BIN}` > /dev/null
 NOPANEL_BIN=`pwd`;
@@ -46,19 +46,19 @@ NOPANEL_RECURSION_LEVEL=0
 
 nopanel() {
     ((NOPANEL_RECURSION_LEVEL+=1))
-
+    
     if [[ -z "$@" ]]; then
         nplib_command_output 'error' "noPanel: command missing. Try '${0} help' for more information."
         ((NOPANEL_RECURSION_LEVEL-=1))
         return 1
     fi
-
+    
     # parse command line parameters
     source $NOPANEL_LIB/params.inc
-
+    
     # basic check user
     nplib_check_user
-
+    
     if [ $cmd_file ]; then
         # actually run command
         if [ "$NOPANEL_DEBUG" ]; then
@@ -75,15 +75,15 @@ nopanel() {
             echo "*** Now the command itself:"
             echo ""
         fi
-
+        
         if [ "$cmd_type" = 'not-found' ]; then
             nplib_command_output 'error' "Unrecognized command: $@ (was ok until '$cmd_file')"
             res=1
-        elif [ "$cmd_type" = 'include' ]; then
+            elif [ "$cmd_type" = 'include' ]; then
             nplib_require $cmd_file
             nopanel_$cmd_name $@
             res=$?
-        elif [ "$cmd_type" = 'dir' ]; then
+            elif [ "$cmd_type" = 'dir' ]; then
             # Found to dir level, but no file. Assume 'help' command
             if [ -f "$NOPANEL_LIB/${cmd_file}/help" ]; then
                 nplib_require "$NOPANEL_LIB/${cmd_file}/help"
@@ -99,9 +99,9 @@ nopanel() {
         ((NOPANEL_RECURSION_LEVEL-=1))
         res=1
     fi
-
+    
     ((NOPANEL_RECURSION_LEVEL-=1))
-
+    
     return $res
 }
 

@@ -2,15 +2,15 @@
 
 nopanel_module_mariadb_install() {
     nplib_command_echo "= Install noPanel MariaDB module"
-
+    
     nplib_require $NOPANEL_LIB/module.inc
     nplib_auto_elevate
-
-    local mariadb_version='11.4'
-
+    
+    local mariadb_version='11.8'
+    
     osal_execute osal_service_stop $OSAL_SERVICE_MARIADB
     nplib_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
-
+    
     nplib_command_echo "- Installing MariaDB package(s)"
     # Setup repos
     if [ "$OS_BASE" = 'debian' ]; then
@@ -19,16 +19,16 @@ nopanel_module_mariadb_install() {
 deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/debian $OS_CODENAME main
 EOL
         osal_execute apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
-    elif [ "$OS_BASE" = 'ubuntu' ]; then
+        elif [ "$OS_BASE" = 'ubuntu' ]; then
         cat > /etc/apt/sources.list.d/mariadb.list <<EOL
 # This file was added by noPanel (http://www.nopanel.cc)
 deb [arch=amd64] https://mirror.mva-n.net/mariadb/repo/$mariadb_version/ubuntu $OS_CODENAME main
 EOL
         osal_execute apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
-    elif [ "$OS_BASE" = 'rhel' ]; then
+        elif [ "$OS_BASE" = 'rhel' ]; then
         # Remove conflicting OS-provided packages
         osal_execute osal_package_remove mariadb-server mariadb-gssapi-server
-
+        
         cat > "/etc/yum.repos.d/mariadb.repo" <<EOL
 # This file was added by noPanel (http://www.nopanel.cc)
 [mariadb]
@@ -39,23 +39,23 @@ gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1
 EOL
     fi
-
+    
     osal_execute osal_package_preinstall
     osal_execute osal_package_install ${OSAL_PKG_MARIADB}-server ${OSAL_PKG_MARIADB}-client ${OSAL_PKG_MARIADB}-common
-
+    
     if [ "$OS_BASE" = 'rhel' ]; then
         # Since 10.7, compression plugins are packaged
         osal_execute osal_package_install ${OSAL_PKG_MARIADB}-provider-lz4 ${OSAL_PKG_MARIADB}-provider-lzma ${OSAL_PKG_MARIADB}-backup
     fi
-
+    
     nplib_command_echo "- Creating configuration files and directories"
-
+    
     local memory=$(grep 'MemTotal' /proc/meminfo |tr ' ' '\n' |grep [0-9])
     local mycnf="my-small.cnf"
     if [ $memory -gt 1200000 ]; then
         mycnf="my-medium.cnf"
     fi
-
+    
     # Configuring MariaDB
     rm -rf $OSAL_DIR_MARIADB_CONF_D
     mkdir -p $OSAL_DIR_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
@@ -65,28 +65,28 @@ EOL
         nplib_command_echo " - Creating initial database"
         mariadb-install-db > $NOPANEL_LOG/debug.log 2>&1
     fi
-
+    
     [[ -d  /var/run/mysqld ]] && chown mysql:mysql /var/run/mysqld
-
+    
     nplib_command_echo "- Enabling and starting MariaDB service"
-
+    
     osal_execute osal_service_enable $OSAL_SERVICE_MARIADB
     osal_execute osal_service_start $OSAL_SERVICE_MARIADB
-
+    
     nplib_command_echo "- Additional MariaDB configuration"
-
+    
     if [ ! -s ~/.my.cnf ]; then
         # If /root/.my.cnf does not exist, secure MariaDB by setting root password
         local mariadb_root_password=$(osal_gen_pass)
         mariadb-admin -u root password $mariadb_root_password
         echo -e "[client]\nuser=root\npassword='$mariadb_root_password'\n" > ~/.my.cnf
         chmod 600 ~/.my.cnf
-
+        
         osal_json_set "$NOPANEL_ETC/modules.json" ".mariadb.password = \"$mariadb_root_password\""
     fi
-
+    
     mariadb-upgrade > $NOPANEL_LOG/debug.log 2>&1
-
+    
     # Clear MariaDB test users and databases
     # FIXME: MariaDB 10.4 and up use global_priv
     mariadb -e "DELETE FROM mysql.user WHERE User=''" > $NOPANEL_LOG/debug.log 2>&1
@@ -96,18 +96,18 @@ EOL
     mariadb -e "DROP DATABASE test" > $NOPANEL_LOG/debug.log 2>&1
     mariadb -e "INSERT INTO mysql.global_priv VALUES ('localhost','mariadb.sys','{\"access\":0,\"plugin\":\"mysql_native_password\",\"authentication_string\":\"\",\"account_locked\":true,\"password_last_changed\":0}');" > $NOPANEL_LOG/debug.log 2>&1
     mariadb -e "FLUSH PRIVILEGES;" > $NOPANEL_LOG/debug.log 2>&1
-
+    
     if [ "$OS_BASE" = 'rhel' ]; then
         mariadb -e "INSTALL SONAME 'provider_lz4';" > $NOPANEL_LOG/debug.log 2>&1
         mariadb -e "INSTALL SONAME 'provider_lzma';" > $NOPANEL_LOG/debug.log 2>&1
     fi
-
+    
     nplib_modules_set_installed 'mariadb' 'true'
     nplib_modules_set 'mariadb' 'serviceName' "$OSAL_SERVICE_MARIADB"
     nplib_modules_set 'mariadb' 'host' 'localhost'
     nplib_modules_set 'mariadb' 'user' 'root'
     nplib_modules_set 'mariadb' 'port' '3306'
     [[ "$mariadb_root_password" ]] && nplib_modules_set 'mariadb' 'password' "$mariadb_root_password"
-        
+    
     nplib_command_output 'ok' 'MariaDB module installed'
 }

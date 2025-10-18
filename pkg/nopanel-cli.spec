@@ -1,12 +1,12 @@
 Name:           nopanel-cli
 Version:        1.0
-Release:        26
+Release:        27
 Summary:        noPanel CLI
 Group:          System Environment/Base
 License:        GPLv3
 URL:            https://www.nopanel.cc
 Vendor:         nopanel.cc
-Requires:       (redhat-release >= 7 or fedora-release-common >= 32)
+Requires:       (redhat-release >= 8 or fedora-release-common >= 42)
 Requires:       bash
 Requires:       util-linux
 Requires:       sed
