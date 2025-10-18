@@ -2,43 +2,63 @@
 
 nopanel_database_add() {
     nplib_command_echo "= Add database"
-
+    
     if [[ "$param_help" ]]; then
         nopanel database help
         return
     fi
-
+    
     if [[ ! "$param_user" ]]; then
         nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
-
+    
     if [[ ! "$param_db" ]]; then
         nplib_command_output 'error' 'Database name not specified (--db)'
         return
     fi
-
+    
+    nplib_require $NOPANEL_LIB/validation.inc
     nplib_require $NOPANEL_LIB/database.inc
-
+    
+    # Validate database name
+    if ! nplib_validate_database "$param_db"; then
+        return 1
+    fi
+    
+    # Validate database user if provided
+    if [[ "$param_dbuser" ]]; then
+        if ! nplib_validate_dbuser "$param_dbuser"; then
+            return 1
+        fi
+    fi
+    
+    # Validate password
+    if [[ "$param_password" ]]; then
+        if ! nplib_validate_password "$param_password"; then
+            return 1
+        fi
+    fi
+    
     local DB_FULLNAME="${param_user}_${param_db}"
-
+    
     if nplib_databases_exists "$DB_FULLNAME"; then
         nplib_command_output 'error' "Database already exists, use 'database mod'"
         return
     fi
-
+    
     [[ "$param_dbuser" ]] || param_dbuser=$param_db
-
+    
     # Update noPanel DB
     nplib_command_echo "Creating database $param_db for user $param_user"
-
+    
     nplib_databases_set "$DB_FULLNAME" 'name' "$param_db"
     nplib_databases_set "$DB_FULLNAME" 'user' "$param_user"
     nplib_databases_set "$DB_FULLNAME" 'type' 'mariadb'
     nplib_databases_set "$DB_FULLNAME" 'dbuser' "$param_dbuser"
     nplib_databases_set "$DB_FULLNAME" 'password' "$param_password"
-
+    
     nopanel database mod
-
+    
     nplib_command_output 'ok' 'Database created'
 }

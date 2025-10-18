@@ -2,39 +2,54 @@
 
 nopanel_user_mod() {
     nplib_command_echo "= Set user"
-
+    
     if [[ "$param_help" ]]; then
         nopanel user help
         return
     fi
-
+    
     if [[ ! "$param_user" ]]; then
         nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
-
+    
     if [[ "$param_admin" ]] && ! nplib_is_bool "$param_admin"; then
         nplib_command_output 'error' 'Invalid value for --admin'
         return 1
     fi
-
+    
     if [[ "$param_login" ]]; then
         case "$param_login" in
             'ssh'|'sftp'|'no')
                 :
-                ;;
+            ;;
             *)
                 nplib_command_output 'error' "Invalid value for --login (must be 'ssh', 'sftp' or 'no')"
                 return 1
-                ;;
+            ;;
         esac
     fi
-
+    
+    nplib_require $NOPANEL_LIB/validation.inc
     nplib_require $NOPANEL_LIB/user.inc
-
+    
     if ! nplib_users_exists "$param_user"; then
         nplib_command_output 'error' 'User does not exist'
         return
+    fi
+    
+    # Validate email if being set
+    if [[ "$param_email" ]]; then
+        if ! nplib_validate_email "$param_email"; then
+            return 1
+        fi
+    fi
+    
+    # Validate password if being set
+    if [[ "$param_password" ]]; then
+        if ! nplib_validate_password "$param_password"; then
+            return 1
+        fi
     fi
     
     [[ "$param_fullname" ]] && nplib_users_set "$param_user" 'fullname' "$param_fullname"
@@ -46,6 +61,6 @@ nopanel_user_mod() {
     if [[ "$param_commit" ]]; then
         nopanel user commit
     fi
-
+    
     nplib_command_output 'ok' 'User saved'
 }

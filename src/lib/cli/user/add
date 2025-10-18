@@ -2,35 +2,53 @@
 
 nopanel_user_add() {
     nplib_command_echo "= Add user"
-
+    
     if [[ "$param_help" ]]; then
         nopanel user help
         return
     fi
-
+    
     if [[ ! "$param_user" ]]; then
         nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
-
+    
+    nplib_require $NOPANEL_LIB/validation.inc
     nplib_require $NOPANEL_LIB/user.inc
-
+    
+    # Validate username
+    if ! nplib_validate_username "$param_user"; then
+        return 1
+    fi
+    
     if nplib_users_exists "$param_user"; then
         nplib_command_output 'error' 'User already exists'
         return
     fi
-
+    
     if [[ ! "$param_password" ]]; then
         nplib_command_output 'error' 'User password not specified (--password)'
         return
     fi
-
+    
+    # Validate password
+    if ! nplib_validate_password "$param_password"; then
+        return 1
+    fi
+    
+    # Validate email if provided
+    if [[ "$param_email" ]]; then
+        if ! nplib_validate_email "$param_email"; then
+            return 1
+        fi
+    fi
+    
     # Create user
     nplib_users_set "$param_user" 'name' "$param_user"
-
+    
     # Set defaults
     [[ "$param_shell" ]] || param_shell='/bin/bash'
-
+    
     # Call mod (-> commit)
     if nopanel user mod; then
         nplib_command_output 'ok' 'User created'

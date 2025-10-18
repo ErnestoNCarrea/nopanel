@@ -2,12 +2,12 @@
 
 nopanel_web_domain_add() {
     nplib_command_echo "= Add web domain"
-
+    
     if [[ "$param_help" ]]; then
         nopanel web help
         return
     fi
-
+    
     if [[ ! "$param_user" ]]; then
         nplib_command_output 'error' 'Username not specified (--user)'
         return
@@ -16,22 +16,35 @@ nopanel_web_domain_add() {
         nplib_command_output 'error' 'Domain name not specified'
         return
     fi
-
+    
+    nplib_require $NOPANEL_LIB/validation.inc
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
-
+    
+    # Validate domain name
+    if ! nplib_validate_domain "$param_domain"; then
+        return 1
+    fi
+    
+    # Validate aliases if provided
+    if [[ "$param_aliases" ]]; then
+        if ! nplib_validate_aliases "$param_aliases"; then
+            return 1
+        fi
+    fi
+    
     if ! nplib_users_exists $param_user; then
         nplib_command_output 'error' 'User does not exist'
         return
     fi
-
+    
     # Default values
     [[ ! "$param_php" ]] && param_php='no'
-
+    
     # Update noPanel DB
     nplib_domains_set "$param_domain" 'name' "$param_domain"
     nplib_domains_set "$param_domain" 'user' "$param_user"
-
+    
     # Call mod (-> commit (-> reload))
     if nopanel web domain mod; then
         nplib_command_output 'ok' 'Web domain created'

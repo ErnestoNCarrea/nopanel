@@ -2,37 +2,53 @@
 
 nopanel_database_mod() {
     nplib_command_echo "= Set database"
-
+    
     if [[ "$param_help" ]]; then
         nopanel database help
         return
     fi
-
+    
     if [[ ! "$param_user" ]]; then
         nplib_command_output 'error' 'Username not specified (--user)'
         return
     fi
-
+    
     if [[ ! "$param_db" ]]; then
         nplib_command_output 'error' 'Database name not specified (--db)'
         return
     fi
-
+    
+    nplib_require $NOPANEL_LIB/validation.inc
     nplib_require $NOPANEL_LIB/database.inc
-
+    
     local DB_FULLNAME="${param_user}_${param_db}"
-
+    
     if ! nplib_databases_exists "$DB_FULLNAME"; then
         nplib_command_output 'error' 'Database does not exist'
         return
     fi
-
+    
+    # Validate password if being set
+    if [[ "$param_password" ]]; then
+        if ! nplib_validate_password "$param_password"; then
+            return 1
+        fi
+    fi
+    
+    # Validate database user if being set
+    if [[ "$param_dbuser" ]]; then
+        if ! nplib_validate_dbuser "$param_dbuser"; then
+            return 1
+        fi
+    fi
+    
     # Update noPanel DB
     [[ "$param_password" ]] && nplib_databases_set "$DB_FULLNAME" 'password' "$param_password"
-
+    [[ "$param_dbuser" ]] && nplib_databases_set "$DB_FULLNAME" 'dbuser' "$param_dbuser"
+    
     if [[ "$param_commit" ]]; then
         nopanel database commit
     fi
-
+    
     nplib_command_output 'ok' 'Database saved'
 }

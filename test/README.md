@@ -24,6 +24,29 @@ Tests the export and import command structure and functionality.
 - Password security (removal from exports)
 - Documentation exists
 
+### test_validation.sh
+Tests input validation for usernames, domains, databases, emails, and passwords.
+
+**Run:**
+```bash
+./test/test_validation.sh
+```
+
+**What it tests:**
+- Username validation (format, length, reserved names)
+- Domain name validation (RFC compliance, TLD requirements)
+- Database name validation (MySQL/MariaDB rules)
+- Database user validation (format and reserved names)
+- Email address validation (RFC 5322 format)
+- Password validation (length and complexity)
+- Domain aliases validation (comma-separated domains)
+
+**Coverage:**
+- 74 test cases across all validation functions
+- Valid and invalid input scenarios
+- Edge cases and boundary conditions
+- Reserved name detection
+
 ### test_migrate.sh
 Tests the user migrate command structure (legacy/deprecated).
 
@@ -36,17 +59,18 @@ Tests the user migrate command structure (legacy/deprecated).
 
 ```bash
 # From project root
-for test in test/*.sh; do
+for test in test/test_*.sh; do
     echo "Running $test..."
     $test || exit 1
 done
 ```
 
-Or create a simple test runner:
+Or run individually:
 
 ```bash
 cd /home/ecarrea/git/nopanel
 ./test/test_export_import.sh
+./test/test_validation.sh
 ```
 
 ## Test Requirements

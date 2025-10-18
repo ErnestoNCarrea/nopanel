@@ -42,6 +42,7 @@ nopanel_import() {
         return 1
     fi
     
+    nplib_require $NOPANEL_LIB/validation.inc
     nplib_require $NOPANEL_LIB/user.inc
     nplib_require $NOPANEL_LIB/domain.inc
     nplib_require $NOPANEL_LIB/database.inc
@@ -122,6 +123,22 @@ nopanel_import_users() {
         local email=$(jq -r --arg user "$username" '.users[$user] | .email // ""' "$import_file")
         local login=$(jq -r --arg user "$username" '.users[$user] | .login // ""' "$import_file")
         local admin=$(jq -r --arg user "$username" '.users[$user] | .admin // ""' "$import_file")
+        
+        # Validate username
+        if ! nplib_validate_username "$username" 2>/dev/null; then
+            nplib_command_echo "    ERROR: Invalid username format: $username"
+            ((user_index++))
+            continue
+        fi
+        
+        # Validate email if present
+        if [[ -n "$email" && "$email" != "null" ]]; then
+            if ! nplib_validate_email "$email" 2>/dev/null; then
+                nplib_command_echo "    ERROR: Invalid email for user $username: $email"
+                ((user_index++))
+                continue
+            fi
+        fi
         
         if [[ "$param_dry_run" ]]; then
             nplib_command_echo "    [DRY RUN] Would create user: $username"
@@ -209,6 +226,22 @@ nopanel_import_domains() {
         local web_aliases=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .web_aliases // ""' "$import_file")
         local web_ssl=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .web_ssl // ""' "$import_file")
         local web_php=$(jq -r --arg idx "$domain_index" '.domains[$idx | tonumber] | .web_php // ""' "$import_file")
+        
+        # Validate domain name
+        if ! nplib_validate_domain "$domain_name" 2>/dev/null; then
+            nplib_command_echo "    ERROR: Invalid domain format: $domain_name"
+            ((domain_index++))
+            continue
+        fi
+        
+        # Validate aliases if present
+        if [[ -n "$web_aliases" && "$web_aliases" != "null" ]]; then
+            if ! nplib_validate_aliases "$web_aliases" 2>/dev/null; then
+                nplib_command_echo "    ERROR: Invalid domain aliases for $domain_name: $web_aliases"
+                ((domain_index++))
+                continue
+            fi
+        fi
         
         if [[ "$param_dry_run" ]]; then
             nplib_command_echo "    [DRY RUN] Would create domain: $domain_name for user: $domain_user"
@@ -323,6 +356,22 @@ nopanel_import_databases() {
         local db_user=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .user // ""' "$import_file")
         local db_dbuser=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .dbuser // ""' "$import_file")
         local db_type=$(jq -r --arg idx "$db_index" '.databases[$idx | tonumber] | .type // "mariadb"' "$import_file")
+        
+        # Validate database name
+        if ! nplib_validate_database "$db_name" 2>/dev/null; then
+            nplib_command_echo "    ERROR: Invalid database name format: $db_name"
+            ((db_index++))
+            continue
+        fi
+        
+        # Validate database user if present
+        if [[ -n "$db_dbuser" && "$db_dbuser" != "null" ]]; then
+            if ! nplib_validate_dbuser "$db_dbuser" 2>/dev/null; then
+                nplib_command_echo "    ERROR: Invalid database username for $db_name: $db_dbuser"
+                ((db_index++))
+                continue
+            fi
+        fi
         
         if [[ "$param_dry_run" ]]; then
             nplib_command_echo "    [DRY RUN] Would create database: $db_name for user: $db_user"
