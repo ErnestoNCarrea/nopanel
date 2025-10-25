@@ -37,7 +37,7 @@ nopanel_module_php-fpm_del() {
         return
     fi
 
-    nplib_command_echo "Adding PHP (FPM) version $param_version"
+    nplib_command_echo "Removing PHP (FPM) version $param_version"
 
     local php_prefix=$(osal_php_package_prefix $param_version)
 
