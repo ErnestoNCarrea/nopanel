@@ -65,6 +65,12 @@ OSAL_PKG_NGINX=nginx
 OSAL_PATH_NGINX_CONF=/etc/nginx
 OSAL_PATH_NGINX_CONF_D=/etc/nginx/conf.d
 
+# Valkey
+OSAL_PKG_VALKEY=valkey
+OSAL_SERVICE_VALKEY=valkey
+OSAL_PATH_VALKEY_CONF=/etc/valkey/valkey.conf
+OSAL_PATH_VALKEY_DATA=/var/lib/valkey
+
 # PHP
 PHP_DIR_POOL_D_BASE=/etc/php
 PHP_PKG_MOD_PHP=libapache2-mod-php
@@ -104,7 +110,7 @@ OSAL_PATH_RUN=/var/run
 
 # osal_package_getversion 'package'
 osal_package_getversion() {
-   dpkg-query --showformat='${Version}\n' --show $1 | cut -d"~" -f1
+    dpkg-query --showformat='${Version}\n' --show $1 | cut -d"~" -f1
 }
 
 # OS function wrappers

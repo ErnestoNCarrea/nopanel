@@ -36,5 +36,15 @@
         "user": "root",
         "password": "",
         "port": "3306"
+    },
+    "valkey": {
+        "name": "valkey",
+        "installed": "false",
+        "description": "Valkey in-memory data store",
+        "provides": "cache",
+        "serviceName": "valkey",
+        "host": "localhost",
+        "port": "6379",
+        "password": ""
     }
 }

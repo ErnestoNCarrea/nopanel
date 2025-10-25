@@ -1,0 +1,65 @@
+#!/bin/bash
+
+nopanel_module_valkey_install() {
+    nplib_command_echo "= Install noPanel Valkey module"
+    
+    nplib_require $NOPANEL_LIB/module.inc
+    nplib_auto_elevate
+    
+    local valkey_version='8.0'
+    
+    osal_execute osal_service_stop $OSAL_SERVICE_VALKEY
+    nplib_config_backup 'valkey-install' $OSAL_PATH_VALKEY_CONF
+    
+    nplib_command_echo "- Installing Valkey package(s)"
+    
+    case $OS_TYPE in
+        'fedora')
+            nplib_command_echo " - Adding Remi repository"
+            osal_execute osal_package_install "https://rpms.remirepo.net/fedora/remi-release-${OS_VERSION_MAJOR}.rpm"
+        ;;
+        'centos'|'rhel'|'redhat'|'almalinux'|'rocky')
+            nplib_command_echo " - Adding Remi repository"
+            osal_execute osal_package_install "https://rpms.remirepo.net/enterprise/remi-release-${OS_VERSION_MAJOR}.rpm"
+        ;;
+    esac
+    
+    # Setup repos and install
+    if [ "$OS_BASE" = 'debian' ]; then
+        # Add Valkey repository for Debian/Ubuntu
+        osal_execute curl -fsSL https://packages.valkey.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/valkey-archive-keyring.gpg] https://packages.valkey.io/deb $OS_CODENAME main" > /etc/apt/sources.list.d/valkey.list
+        osal_execute osal_package_preinstall
+        osal_execute osal_package_install ${OSAL_PKG_VALKEY}
+        elif [ "$OS_BASE" = 'rhel' ]; then
+        dnf module reset ${OSAL_PKG_VALKEY} -y
+        dnf module enable ${OSAL_PKG_VALKEY}:remi-9.0 -y
+        osal_execute osal_package_preinstall
+        osal_execute osal_package_install ${OSAL_PKG_VALKEY}
+    fi
+    
+    nplib_command_echo "- Creating configuration files and directories"
+    
+    # Configure Valkey - disable RDB snapshots
+    if [ -f "$OSAL_PATH_VALKEY_CONF" ]; then
+        # Disable all RDB save directives by commenting them out
+        sed -i 's/^save /# save /' $OSAL_PATH_VALKEY_CONF
+        
+        # Add explicit save "" to disable RDB completely
+        if ! grep -q '^save ""' $OSAL_PATH_VALKEY_CONF; then
+            echo '' >> $OSAL_PATH_VALKEY_CONF
+            echo '# RDB disabled by noPanel' >> $OSAL_PATH_VALKEY_CONF
+            echo 'save ""' >> $OSAL_PATH_VALKEY_CONF
+        fi
+    fi
+    
+    nplib_command_echo "- Enabling and starting Valkey service"
+    
+    osal_execute osal_service_enable $OSAL_SERVICE_VALKEY
+    osal_execute osal_service_start $OSAL_SERVICE_VALKEY
+    
+    # Mark module as installed
+    nplib_modules_set_installed 'valkey' 'true'
+    
+    nplib_command_output 'ok' "Valkey installed successfully"
+}
