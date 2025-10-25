@@ -1,6 +1,6 @@
 Name:           nopanel-cli
 Version:        1.0
-Release:        29
+Release:        30
 Summary:        noPanel CLI
 Group:          System Environment/Base
 License:        GPLv3
