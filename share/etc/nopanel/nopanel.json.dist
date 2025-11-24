@@ -1,5 +1,11 @@
 {
     "prefs": {
         "autoElevate": "false"
+    },
+    "mariadb": {
+        "default_branch": "lts"
+    },
+    "php": {
+        "additional_modules": ""
     }
 }
