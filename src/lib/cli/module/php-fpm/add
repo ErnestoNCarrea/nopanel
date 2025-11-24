@@ -55,6 +55,20 @@ nopanel_module_php-fpm_add() {
         # Debian / Ubuntu
         PACKAGES="$PACKAGES php-apcu $php_prefix-mysql memcached libmemcached-tools php-memcached"
     fi
+    
+    # Add additional modules from config
+    local additional_modules=$(osal_nopanel_config_get "php" "additional_modules" "")
+    if [[ -n "$additional_modules" ]]; then
+        # Convert comma-separated list to space-separated with php prefix
+        IFS=',' read -ra modules <<< "$additional_modules"
+        for module in "${modules[@]}"; do
+            # Trim whitespace
+            module=$(echo "$module" | xargs)
+            if [[ -n "$module" ]]; then
+                PACKAGES="$PACKAGES $php_prefix-$module"
+            fi
+        done
+    fi
 
     # Install php packages
     osal_execute osal_package_preinstall
