@@ -233,3 +233,19 @@ nplib_require() {
         nplib_required="$nplib_required $1"
     fi
 }
+
+# Get noPanel configuration value
+# osal_nopanel_config_get 'section' 'key' 'default_value'
+osal_nopanel_config_get() {
+    local section="$1"
+    local key="$2"
+    local default="$3"
+
+    local value=$(osal_json_get "$NOPANEL_ETC/nopanel.json" ".\"$section\".\"$key\"")
+
+    if [[ -z "$value" ]] || [[ "$value" == "null" ]]; then
+        echo "$default"
+    else
+        echo "$value"
+    fi
+}
