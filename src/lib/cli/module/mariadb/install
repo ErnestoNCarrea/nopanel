@@ -4,9 +4,19 @@ nopanel_module_mariadb_install() {
     nplib_command_echo "= Install noPanel MariaDB module"
     
     nplib_require $NOPANEL_LIB/module.inc
+    nplib_require $NOPANEL_LIB/mariadb.inc
     nplib_auto_elevate
     
-    local mariadb_version='12.0'
+    # Get default branch from config (lts or latest), default to lts
+    local default_branch=$(osal_nopanel_config_get "mariadb" "default_branch" "lts")
+    
+    # Set version based on branch
+    if [[ "$default_branch" == "latest" ]]; then
+        local mariadb_version="$MARIADB_LATEST_VERSION"
+    else
+        # lts version
+        local mariadb_version="$MARIADB_LTS_VERSION"
+    fi
     
     osal_execute osal_service_stop $OSAL_SERVICE_MARIADB
     nplib_config_backup 'mariadb-install' $OSAL_PATH_MARIADB_CONF $OSAL_DIR_MARIADB_CONF_D
