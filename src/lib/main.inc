@@ -199,7 +199,7 @@ nplib_auto_elevate() {
         return;
     fi
 
-    local auto_elevate=$(osal_json_get "$NOPANEL_ETC/nopanel.json" ".\"prefs\".\"autoElevate\"")
+    local auto_elevate=$(osal_nopanel_config_get "prefs" "autoElevate" "false")
     if nplib_is_true $auto_elevate; then
         nplib_elevate
     elif nplib_is_nopanel_admin; then

@@ -244,3 +244,19 @@ osal_user_del_group() {
 osal_user_set_shell() {
     /usr/sbin/usermod --shell "$2" "$1" > $NOPANEL_LOG/debug.log 2>&1
 }
+
+# Get noPanel configuration value
+# osal_nopanel_config_get 'section' 'key' 'default_value'
+osal_nopanel_config_get() {
+    local section="$1"
+    local key="$2"
+    local default="$3"
+    
+    local value=$(osal_json_get "$NOPANEL_ETC/nopanel.json" ".\"$section\".\"$key\"")
+    
+    if [[ -z "$value" ]] || [[ "$value" == "null" ]]; then
+        echo "$default"
+    else
+        echo "$value"
+    fi
+}
