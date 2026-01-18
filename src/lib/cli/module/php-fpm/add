@@ -43,7 +43,7 @@ nopanel_module_php-fpm_add() {
 
     PACKAGES="$php_prefix-bcmath $php_prefix-cli $php_prefix-curl
         $php_prefix-gd $php_prefix-intl $php_prefix-mbstring 
-        $php_prefix-soap $php_prefix-xml $php_prefix-zip
+        $php_prefix-soap $php_prefix-xml $php_prefix-zip $php_prefix-bcmath
         $php_prefix-bz2 $php_prefix-pspell $php_prefix-imagick $php_prefix-pgsql
         $php_prefix-imap $php_prefix-ldap $php_prefix-opcache
         $php_prefix-pecl-memcache $php_prefix-pecl-memcached
