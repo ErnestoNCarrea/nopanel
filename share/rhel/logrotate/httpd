@@ -1,13 +1,14 @@
-/var/log/httpd/*log /var/log/httpd/domains/* {
+/var/log/httpd/*.log /var/log/httpd/domains/* {
     rotate 4
     weekly
     missingok
     notifempty
     compress
-    delaycompress
-    create 640
+#    delaycompress
+    su root nopanel-admins
+    create 660
     sharedscripts
     postrotate
-        systemctl reload httpd.service > /dev/null 2>/dev/null
+	systemctl reload httpd.service > /dev/null 2>/dev/null
     endscript
 }
