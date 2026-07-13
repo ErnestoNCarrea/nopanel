@@ -1,2 +1,11 @@
 var/backup
 src/lib/getssl
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/

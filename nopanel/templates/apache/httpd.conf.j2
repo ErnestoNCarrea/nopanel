@@ -1,0 +1,66 @@
+# noPanel v2 — Base Apache httpd configuration
+# DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!
+
+ServerRoot "/usr/local/apache2"
+Listen 80
+Listen 443
+
+# Essential modules required by httpd:2.4-alpine
+LoadModule mpm_event_module modules/mod_mpm_event.so
+LoadModule authn_core_module modules/mod_authn_core.so
+LoadModule authn_file_module modules/mod_authn_file.so
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule authz_user_module modules/mod_authz_user.so
+LoadModule auth_basic_module modules/mod_auth_basic.so
+LoadModule reqtimeout_module modules/mod_reqtimeout.so
+LoadModule filter_module modules/mod_filter.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule env_module modules/mod_env.so
+LoadModule headers_module modules/mod_headers.so
+LoadModule setenvif_module modules/mod_setenvif.so
+LoadModule version_module modules/mod_version.so
+LoadModule unixd_module modules/mod_unixd.so
+LoadModule status_module modules/mod_status.so
+LoadModule autoindex_module modules/mod_autoindex.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule alias_module modules/mod_alias.so
+
+# noPanel modules — socache_shmcb must load before ssl and md;
+# proxy must load before proxy_fcgi
+LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
+{% for mod in modules %}
+LoadModule {{ mod }}_module modules/mod_{{ mod }}.so
+{% endfor %}
+
+# Apache user/group in httpd:2.4-alpine
+User apache
+Group apache
+
+ServerAdmin admin@localhost
+ServerTokens Prod
+ServerSignature Off
+
+<Directory />
+    AllowOverride none
+    Require all denied
+</Directory>
+
+DocumentRoot "/usr/local/apache2/htdocs"
+
+<Directory "/usr/local/apache2/htdocs">
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+
+DirectoryIndex index.html index.php
+
+ErrorLog /proc/self/fd/2
+LogLevel warn
+
+# Include mod_md config (if present) and per-domain vhosts
+# Avoid Include conf.d/*.conf to prevent self-inclusion of this file
+IncludeOptional conf.d/mod_md.conf
+IncludeOptional conf.d/domains/*.conf

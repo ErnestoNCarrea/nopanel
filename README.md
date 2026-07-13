@@ -1,8 +1,64 @@
-## noPanel
+# noPanel
 
 A panel-less web panel.
 
-noPanel is a multi-user, CLI-only web server manager, with Apache, Let's Encrypt, MariaDB and multi-version PHP support.
+noPanel is a multi-user, CLI-only web server manager, with Apache, Let's Encrypt (mod_md), MariaDB and multi-version PHP support.
+
+## v2 (current)
+
+Containerized Python CLI tool. Manages Apache, PHP-FPM, MariaDB, and Valkey containers via Docker Compose, with a single `commit` command to apply all configuration changes.
+
+### Installation
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Usage
+
+```bash
+# Initialize config directory
+nopanel init
+
+# Add a user
+nopanel user add --user alice --password mypassword --fullname "Alice Smith"
+
+# Add a domain
+nopanel domain add --domain example.com --user alice --php 8.2 --ssl auto
+
+# Add a database
+nopanel database add --user alice --db blog --password dbpassword
+
+# Apply all changes
+nopanel commit
+
+# Check status
+nopanel status
+
+# Migrate from v1
+nopanel migrate --pre-check
+nopanel migrate --dry-run
+nopanel migrate
+```
+
+### Architecture
+
+- **Config**: YAML files in `/etc/nopanel/` (nopanel.yml, users.yml, domains.yml, databases.yml, services.yml)
+- **Commit engine**: Diffs desired vs committed state, generates configs, applies changes, snapshots
+- **Docker**: All services run as Docker containers, managed via docker compose
+- **Templates**: Jinja2 templates for Apache vhosts, PHP-FPM pools, docker-compose.yml
+
+### Testing
+
+```bash
+pytest
+```
+
+### Documentation
+
+- [Migration Guide](docs/migration.md)
+
+## v1 (legacy)
 
 Written entirely in Bash, with minimal dependencies.
 

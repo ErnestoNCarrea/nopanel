@@ -1,0 +1,41 @@
+#########################################################################
+# noPanel v2 Apache configuration file (https://docs.nopanel.cc)         #
+# DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!                   #
+#########################################################################
+
+<VirtualHost *:80>
+    ServerName {{ domain }}
+    {% if aliases %}
+    ServerAlias {{ aliases | join(" ") }}
+    {% endif %}
+    ServerAdmin {{ email }}
+    DocumentRoot {{ docroot }}
+
+    CustomLog {{ log_dir }}/domains/{{ domain }}.log combined
+    ErrorLog {{ log_dir }}/domains/{{ domain }}.error.log
+
+    <Directory {{ docroot }}>
+        AllowOverride All
+        Options +Includes -Indexes +ExecCGI
+    </Directory>
+
+    {% if php_socket %}
+    <FilesMatch \.(php|phar)$>
+        SetHandler "proxy:unix:{{ php_socket }}|fcgi://localhost"
+    </FilesMatch>
+    {% endif %}
+
+    # ACME challenge passthrough for mod_md
+    Alias /.well-known/acme-challenge/ /usr/local/apache2/md/.well-known/acme-challenge/
+    <Directory "/usr/local/apache2/md/.well-known/acme-challenge/">
+        Options None
+        AllowOverride None
+        ForceType text/plain
+    </Directory>
+
+    {% if ssl_mode == "auto" %}
+    # Redirect to HTTPS (mod_md will manage the certificate)
+    RewriteEngine On
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+    {% endif %}
+</VirtualHost>

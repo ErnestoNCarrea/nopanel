@@ -1,0 +1,162 @@
+#!/bin/bash
+# noPanel v2 — Host wrapper script
+# © Ernesto N. Carrea / https://www.nopanel.cc
+#
+# This script is installed on the host (e.g. /usr/local/bin/nopanel).
+# It proxies all commands to the nopanel container and executes
+# host-side operations that cannot run inside a container (system
+# user management: useradd, chpasswd, chsh, userdel).
+#
+# All batch tracking (accumulation, display, clearing) is handled by
+# the container app. This wrapper only fetches raw commands from the
+# container, executes them on the host, and notifies the container
+# when execution is complete.
+#
+# Usage:
+#   nopanel <any command>              Proxy to container
+#   nopanel commit [--run-host]        Commit; optionally run pending host commands
+#   nopanel host-commands              Show pending host commands (from container)
+#   nopanel host-commands --run        Run pending host commands on the host
+#
+# Options for commit:
+#   --run-host     Run pending host commands after a successful commit
+#   --no-host      Skip host command check entirely (proxy only)
+#
+# Environment variables:
+#   NOPANEL_CONTAINER  Container name (default: nopanel)
+#   NOPANEL_HOST_LOG   Log file for executed host commands (default: /var/log/nopanel/host-commands.log)
+
+set -euo pipefail
+
+CONTAINER_NAME="${NOPANEL_CONTAINER:-nopanel}"
+HOST_LOG="${NOPANEL_HOST_LOG:-/var/log/nopanel/host-commands.log}"
+
+# ---------------------------------------------------------------------------
+# Validate that a command is in the allowed whitelist
+# ---------------------------------------------------------------------------
+is_allowed_command() {
+    local cmd="$1"
+    # Strip leading/trailing whitespace
+    cmd="$(echo "$cmd" | xargs)"
+    case "$cmd" in
+        useradd\ -m\ -s\ */*s\ *) return 0 ;;
+        echo\ *\|\ chpasswd) return 0 ;;
+        chsh\ -s\ /*\ *) return 0 ;;
+        userdel\ -r\ *) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# ---------------------------------------------------------------------------
+# Run host commands from stdin, validating each against the whitelist
+# ---------------------------------------------------------------------------
+run_host_commands() {
+    local cmd
+    local failures=0
+    while IFS= read -r cmd; do
+        # Skip empty lines
+        [[ -z "$cmd" ]] && continue
+
+        if is_allowed_command "$cmd"; then
+            echo "  Running: $cmd"
+            if eval "$cmd"; then
+                mkdir -p "$(dirname "$HOST_LOG")"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') OK: $cmd" >> "$HOST_LOG"
+            else
+                echo "  FAILED: $cmd" >&2
+                echo "$(date '+%Y-%m-%d %H:%M:%S') FAILED: $cmd" >> "$HOST_LOG"
+                failures=$((failures + 1))
+            fi
+        else
+            echo "  SKIPPED (not in whitelist): $cmd" >&2
+            echo "$(date '+%Y-%m-%d %H:%M:%S') SKIPPED: $cmd" >> "$HOST_LOG"
+            failures=$((failures + 1))
+        fi
+    done
+    return $failures
+}
+
+# ---------------------------------------------------------------------------
+# Fetch raw host commands from the container (plain text, one per line)
+# ---------------------------------------------------------------------------
+get_host_commands_raw() {
+    docker exec "$CONTAINER_NAME" nopanel user host-commands --raw 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# Tell the container to clear all pending host commands
+# ---------------------------------------------------------------------------
+clear_pending_commands() {
+    docker exec "$CONTAINER_NAME" nopanel user host-commands --done 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# Execute pending host commands and notify container of result
+# ---------------------------------------------------------------------------
+execute_pending_host_commands() {
+    local cmds
+    cmds="$(get_host_commands_raw)"
+    if [[ -z "$cmds" ]]; then
+        echo "No pending host commands."
+        return 0
+    fi
+    echo "Running host commands:"
+    echo "$cmds" | run_host_commands
+    local host_exit=$?
+    if [[ $host_exit -eq 0 ]]; then
+        clear_pending_commands
+    else
+        echo "Some host commands failed. Pending commands preserved for retry." >&2
+        echo "See $HOST_LOG for details." >&2
+    fi
+    return $host_exit
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+# Special case: host-commands is handled locally, not proxied
+if [[ "${1:-}" == "host-commands" ]]; then
+    if [[ "${2:-}" == "--run" ]]; then
+        execute_pending_host_commands
+        exit $?
+    else
+        # Show pending commands (human-readable, from container)
+        docker exec "$CONTAINER_NAME" nopanel user host-commands
+        exit $?
+    fi
+fi
+
+# Parse host wrapper options for commit
+run_host=false
+no_host=false
+proxy_args=()
+for arg in "$@"; do
+    case "$arg" in
+        --run-host) run_host=true ;;
+        --no-host)  no_host=true ;;
+        *)          proxy_args+=("$arg") ;;
+    esac
+done
+
+# Proxy command to the container
+docker exec "$CONTAINER_NAME" nopanel "${proxy_args[@]}"
+exit_code=$?
+
+# After a successful commit, handle host commands
+if [[ "${1:-}" == "commit" && $exit_code -eq 0 && "$no_host" == false ]]; then
+    cmds="$(get_host_commands_raw)"
+    if [[ -n "$cmds" ]]; then
+        if [[ "$run_host" == true ]]; then
+            echo ""
+            execute_pending_host_commands
+        else
+            echo ""
+            echo "Host commands are pending for system user management."
+            echo "Run 'nopanel host-commands --run' to apply them."
+        fi
+    fi
+fi
+
+exit $exit_code

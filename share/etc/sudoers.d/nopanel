@@ -1,5 +1,5 @@
 #########################################################################
-# noPanel sudoers file (https://docs.nopanel.cc)                        #
+# noPanel v2 sudoers file (https://docs.nopanel.cc)                     #
 # DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!                   #
 #########################################################################
 
@@ -7,5 +7,7 @@ Defaults:%nopanel-admins !syslog
 Defaults:%nopanel-admins !requiretty
 Defaults:root !requiretty
 
-# sudo is limited to noPanel scripts
-%nopanel-admins   ALL=NOPASSWD:/usr/bin/nopanel
+# sudo is limited to the noPanel host wrapper script
+# The wrapper proxies commands to the nopanel container and handles
+# host-side operations (useradd, chpasswd, chsh, userdel)
+%nopanel-admins   ALL=NOPASSWD:/usr/local/bin/nopanel

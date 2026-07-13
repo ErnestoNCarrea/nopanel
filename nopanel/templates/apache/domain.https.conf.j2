@@ -1,0 +1,38 @@
+#########################################################################
+# noPanel v2 Apache configuration file (https://docs.nopanel.cc)         #
+# DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!                   #
+#########################################################################
+
+<VirtualHost *:443>
+    ServerName {{ domain }}
+    {% if aliases %}
+    ServerAlias {{ aliases | join(" ") }}
+    {% endif %}
+    ServerAdmin {{ email }}
+    DocumentRoot {{ docroot }}
+
+    CustomLog {{ log_dir }}/domains/{{ domain }}.log combined
+    ErrorLog {{ log_dir }}/domains/{{ domain }}.error.log
+
+    <Directory {{ docroot }}>
+        AllowOverride All
+        Options +Includes -Indexes +ExecCGI
+    </Directory>
+
+    {% if php_socket %}
+    <FilesMatch \.(php|phar)$>
+        SetHandler "proxy:unix:{{ php_socket }}|fcgi://localhost"
+    </FilesMatch>
+    {% endif %}
+
+    SSLEngine on
+    SSLVerifyClient none
+
+    {% if ssl_cert %}
+    SSLCertificateFile {{ ssl_cert }}
+    SSLCertificateKeyFile {{ ssl_key }}
+    {% else %}
+    # mod_md manages certificates automatically
+    # MDCertificateAuthority and MDomain are set in mod_md.conf
+    {% endif %}
+</VirtualHost>

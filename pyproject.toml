@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nopanel"
+version = "2.0.0"
+description = "Containerized web hosting control panel CLI"
+readme = "READMEv2.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "noPanel" }]
+dependencies = [
+    "typer>=0.12.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "jinja2>=3.1.0",
+    "docker>=7.0.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pytest-mock>=3.12.0",
+]
+
+[project.scripts]
+nopanel = "nopanel.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["nopanel"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

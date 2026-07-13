@@ -1,0 +1,27 @@
+# docker-compose.yml for running the nopanel management container
+# This is NOT the generated compose file for services.
+# The generated file is at /etc/nopanel/generated/docker-compose.yml
+
+services:
+  nopanel:
+    build: .
+    image: nopanel/nopanel:v2
+    container_name: nopanel
+    restart: unless-stopped
+    volumes:
+      # Docker socket — nopanel manages other containers
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      # Config directory
+      - /etc/nopanel:/etc/nopanel:rw
+      # Logs
+      - /var/log/nopanel:/var/log/nopanel:rw
+      # MariaDB Unix socket for SQL access (rw needed for socket handshake)
+      - /var/lib/mysql:/var/lib/mysql:rw
+      # PHP-FPM custom image build context
+      - ./docker:/opt/nopanel/docker:ro
+    network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

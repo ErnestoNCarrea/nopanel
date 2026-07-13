@@ -1,0 +1,18 @@
+; noPanel v2 — PHP-FPM pool configuration for {{ domain }}
+; DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!
+
+[{{ domain }}]
+user = {{ user }}
+group = {{ user }}
+listen = {{ socket_path }}
+listen.owner = apache
+listen.group = apache
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+pm.max_requests = 500
+
+php_admin_value[error_log] = /var/log/apache2/domains/{{ domain }}.php-fpm.log
+php_admin_flag[log_errors] = on

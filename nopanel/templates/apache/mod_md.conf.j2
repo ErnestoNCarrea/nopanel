@@ -1,0 +1,12 @@
+# noPanel v2 — mod_md configuration for automatic ACME SSL
+# DO NOT MODIFY THIS FILE! YOUR CHANGES WILL BE LOST!
+
+MDCertificateAuthority {{ ca_url }}
+MDContactEmail {{ admin_email }}
+MDStapling on
+MDRenewWindow 33%
+MDStoreDir /usr/local/apache2/md
+
+{% for domain in domains %}
+MDomain {{ domain }} auto
+{% endfor %}
