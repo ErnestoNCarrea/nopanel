@@ -121,6 +121,8 @@ nopanel/                  Python package
   state.py                Committed state I/O, diff engine
   docker_manager.py       Docker Compose CLI wrapper
   host_ops.py             Pluggable host operations backend (HostOps protocol)
+  pyinfra_backend.py      PyInfraHostOps + PyInfraSystemOps (pyInfra backend)
+  orchestrator.py         pyInfra inventory builder from nopanel config
   templates.py            Jinja2 template rendering functions
   commit.py               Commit engine (diff → generate → apply → reload → snapshot)
   migrate.py              Migration engine (v1→v2, RHEL-only)
@@ -153,18 +155,21 @@ pyproject.toml            Project metadata and dependencies
 - **mod_md for SSL**: ACME certificates with global admin_email setting
 - **Pluggable host operations**: Host system user management (`useradd`,
   `chpasswd`, `chsh`, `userdel`) and service management (`systemctl`) use a
-  pluggable `HostOps` backend with three implementations:
+  pluggable `HostOps` backend with four implementations:
   - **NsenterHostOps** (default when available): executes commands directly on
     the host via `nsenter -t 1 -m -u -i -n --`, requiring `--privileged` and
     `--pid=host` on the nopanel container. No host-side agent needed.
+  - **PyInfraHostOps** (opt-in via `prefer_pyinfra=True`): uses pyInfra's
+    programmatic API for declarative, idempotent host operations. Supports
+    `@local` (nsenter transport) or SSH transport. Requires `pyinfra>=3.10`.
   - **PendingCommandsHostOps** (fallback): queues commands to
     `pending-host-cmds.sh` for later execution by the host wrapper script
     (`share/host/nopanel`). Commands are validated against a whitelist and
     logged to `/var/log/nopanel/host-commands.log`.
   - **NoOpHostOps**: no-op for `--no-host` or dry-run mode.
-  The backend is auto-detected at runtime by `auto_detect_host_ops()`. Removing
-  `--privileged` and `--pid=host` from the compose file automatically falls back
-  to the pending-commands workflow.
+  The backend is auto-detected at runtime by `auto_detect_host_ops()`. By
+  default, nsenter is tried first, then pending-commands. pyInfra is only
+  tried when `prefer_pyinfra=True` to avoid unexpected SSH/sudo prompts.
 
 ## Testing
 
@@ -172,8 +177,10 @@ pyproject.toml            Project metadata and dependencies
 pytest
 ```
 
-Unit tests covering models, config I/O, state/diff, templates, services, commit engine, migration (including per-service, reconvert, diff, image pull, config generation, and post-migration cleanup), Docker manager, host operations (nsenter, pending-commands, no-op backends), and CLI.
+Unit tests covering models, config I/O, state/diff, templates, services, commit engine, migration (including per-service, reconvert, diff, image pull, config generation, and post-migration cleanup), Docker manager, host operations (nsenter, pending-commands, no-op, pyInfra backends), and CLI.
 
 ## Documentation
 
 - [Migration Guide](docs/migration.md)
+- [Integration Test Plan](docs/integration-tests.md)
+- [pyInfra Migration Plan](docs/pyinfra-migration.md)

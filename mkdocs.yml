@@ -1,0 +1,6 @@
+site_name: noPanel v2 Documentation
+site_description: Containerized web hosting control panel
+docs:
+  - migration.md
+  - integration-tests.md
+  - pyinfra-migration.md

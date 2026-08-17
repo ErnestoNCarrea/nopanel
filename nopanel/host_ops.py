@@ -497,12 +497,34 @@ class NsenterSystemOps:
 # ---------------------------------------------------------------------------
 
 
-def auto_detect_host_ops(config_dir: Path = DEFAULT_CONFIG_DIR) -> HostOps:
+def auto_detect_host_ops(
+    config_dir: Path = DEFAULT_CONFIG_DIR,
+    prefer_pyinfra: bool = False,
+) -> HostOps:
     """Auto-detect the best available host operations backend.
 
-    Tries nsenter first (if running in a privileged container with
-    ``--pid=host``), falls back to pending-commands mode.
+    Detection order (first match wins):
+
+    1. **pyInfra** — only if ``prefer_pyinfra=True``. Uses SSH or
+       @local transport depending on config.
+    2. **nsenter** — if running in a privileged container with
+       ``--pid=host`` (``nsenter -t 1 -m -- true`` succeeds).
+    3. **pending-commands** — fallback: queues commands to a file.
+
+    pyInfra is not tried by default because it requires a working
+    SSH or @local connection, which may prompt for credentials.
+    Use ``prefer_pyinfra=True`` or inject ``PyInfraHostOps`` directly.
+
+    Args:
+        config_dir: Path to nopanel config directory.
+        prefer_pyinfra: If True, try pyInfra before nsenter.
     """
+    if prefer_pyinfra:
+        ops = _try_pyinfra(config_dir)
+        if ops:
+            return ops
+
+    # Try nsenter
     try:
         result = subprocess.run(
             ["nsenter", "-t", "1", "-m", "--", "true"],
@@ -517,3 +539,15 @@ def auto_detect_host_ops(config_dir: Path = DEFAULT_CONFIG_DIR) -> HostOps:
 
     logger.info("Host operations: using pending-commands backend")
     return PendingCommandsHostOps(config_dir=config_dir)
+
+
+def _try_pyinfra(config_dir: Path) -> HostOps | None:
+    """Try to create a PyInfraHostOps, return None if pyInfra unavailable."""
+    try:
+        from nopanel.pyinfra_backend import PyInfraHostOps
+
+        ops = PyInfraHostOps(config_dir=config_dir)
+        logger.info("Host operations: using pyInfra backend")
+        return ops
+    except ImportError:
+        return None
