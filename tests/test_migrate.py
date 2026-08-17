@@ -226,22 +226,119 @@ class TestConfigConversion:
         config = engine.convert_configs()
         assert config.services.mariadb.image == "mariadb:11.4"
 
+    def test_mariadb_version_from_services_yml(self, tmp_config_dir: Path):
+        """get_mariadb_version should read the image tag from v2 services.yml first."""
+        import yaml
+        from nopanel.migrate import RealSystemOps
+
+        (tmp_config_dir / "services.yml").write_text(
+            yaml.dump({"mariadb": {"image": "mariadb:10.11", "port": 3306}})
+        )
+        ops = RealSystemOps(config_dir=tmp_config_dir)
+        result = ops.get_mariadb_version()
+        assert result == "10.11"
+
+    def test_mariadb_version_from_compose_yml(self, tmp_config_dir: Path):
+        """Fall back to generated docker-compose.yml when services.yml has no image."""
+        import yaml
+        from nopanel.migrate import RealSystemOps
+
+        gen_dir = tmp_config_dir / "generated"
+        gen_dir.mkdir()
+        (gen_dir / "docker-compose.yml").write_text(
+            yaml.dump({"services": {"mariadb": {"image": "mariadb:11.4"}}})
+        )
+        ops = RealSystemOps(config_dir=tmp_config_dir)
+        result = ops.get_mariadb_version()
+        assert result == "11.4"
+
+    def test_mariadb_version_from_docker_inspect(self, tmp_config_dir: Path, monkeypatch):
+        """Fall back to docker inspect when no v2 config files exist."""
+        from nopanel.migrate import RealSystemOps
+
+        class InspectResult:
+            returncode = 0
+            stdout = "mariadb:10.11\n"
+            stderr = ""
+
+        class RPMResult:
+            returncode = 1
+            stdout = ""
+            stderr = "not installed"
+
+        def mock_run(cmd, **kw):
+            if "inspect" in cmd:
+                return InspectResult()
+            return RPMResult()
+
+        monkeypatch.setattr(
+            "nopanel.migrate.subprocess.run",
+            mock_run,
+        )
+        ops = RealSystemOps(config_dir=tmp_config_dir)
+        result = ops.get_mariadb_version()
+        assert result == "10.11"
+
+    def test_mariadb_version_from_rpm_fallback(self, tmp_config_dir: Path, monkeypatch):
+        """Last resort: RPM query when no v2 sources are available (initial migration)."""
+        from nopanel.migrate import RealSystemOps
+
+        class RPMResult:
+            returncode = 0
+            stdout = "10.11.8\n"
+            stderr = ""
+
+        class InspectResult:
+            returncode = 1
+            stdout = ""
+            stderr = "No such container"
+
+        def mock_run(cmd, **kw):
+            if "inspect" in cmd:
+                return InspectResult()
+            return RPMResult()
+
+        monkeypatch.setattr(
+            "nopanel.migrate.subprocess.run",
+            mock_run,
+        )
+        ops = RealSystemOps(config_dir=tmp_config_dir)
+        result = ops.get_mariadb_version()
+        assert result == "10.11.8"
+
+    def test_mariadb_version_lts_tag_returns_none(self, tmp_config_dir: Path):
+        """Non-numeric image tags like 'lts' should return None."""
+        import yaml
+        from nopanel.migrate import RealSystemOps
+
+        (tmp_config_dir / "services.yml").write_text(
+            yaml.dump({"mariadb": {"image": "mariadb:lts"}})
+        )
+        ops = RealSystemOps(config_dir=tmp_config_dir)
+        result = ops.get_mariadb_version()
+        assert result is None
+
     def test_mariadb_version_parsing_empty_string(self, tmp_config_dir: Path, monkeypatch):
         """Version parsing should not raise IndexError on empty strings (fix #8)."""
         from nopanel.migrate import RealSystemOps
 
-        class MockResult:
-            returncode = 0
-            stdout = "mysql  Ver 15.1 Distrib  -MariaDB "
-            stderr = ""
+        class InspectResult:
+            returncode = 1
+            stdout = ""
+            stderr = "No such container"
+
+        class RPMResult:
+            returncode = 1
+            stdout = ""
+            stderr = "not installed"
 
         monkeypatch.setattr(
             "nopanel.migrate.subprocess.run",
-            lambda *a, **kw: MockResult(),
+            lambda *a, **kw: InspectResult() if "inspect" in a[0] else RPMResult(),
         )
-        ops = RealSystemOps()
+        ops = RealSystemOps(config_dir=tmp_config_dir)
         result = ops.get_mariadb_version()
-        # Should not raise IndexError; either returns a version or None
+        # Should not raise; either returns a version or None
         assert result is None or isinstance(result, str)
 
 

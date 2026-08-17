@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+import yaml
+
 from nopanel.config import (
     DEFAULT_CONFIG_DIR,
     convert_v1_databases,
@@ -42,6 +44,72 @@ RHEL_SERVICES = {
 
 # Migration order
 MIGRATION_ORDER = ["valkey", "mariadb", "php", "apache"]
+
+
+# ---------------------------------------------------------------------------
+# Helpers for detecting provisioned MariaDB version from v2 sources
+# ---------------------------------------------------------------------------
+
+
+def _parse_version_from_image_tag(image: str) -> str | None:
+    """Extract a version string from a Docker image tag.
+
+    e.g. "mariadb:10.11" -> "10.11", "mariadb:11.4.2" -> "11.4.2"
+    Returns None for non-numeric tags like "mariadb:lts" or "mariadb:latest".
+    """
+    if ":" not in image:
+        return None
+    tag = image.rsplit(":", 1)[1].strip()
+    if tag and tag[0].isdigit():
+        return tag.split("-")[0]
+    return None
+
+
+def _version_from_image_file(yml_path: Path, service_key: str) -> str | None:
+    """Read a services.yml-style file and extract the version from the image tag.
+
+    The YAML structure is expected to have:
+        mariadb:
+          image: mariadb:10.11
+          ...
+    """
+    if not yml_path.exists():
+        return None
+    try:
+        data = yaml.safe_load(yml_path.read_text())
+    except (yaml.YAMLError, OSError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    svc = data.get(service_key, {})
+    if not isinstance(svc, dict):
+        return None
+    image = svc.get("image", "")
+    if image:
+        return _parse_version_from_image_tag(image)
+    return None
+
+
+def _version_from_compose_file(compose_path: Path, service_key: str) -> str | None:
+    """Read a docker-compose.yml and extract the version from the service image tag."""
+    if not compose_path.exists():
+        return None
+    try:
+        data = yaml.safe_load(compose_path.read_text())
+    except (yaml.YAMLError, OSError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    services = data.get("services", {})
+    if not isinstance(services, dict):
+        return None
+    svc = services.get(service_key, {})
+    if not isinstance(svc, dict):
+        return None
+    image = svc.get("image", "")
+    if image:
+        return _parse_version_from_image_tag(image)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -90,20 +158,55 @@ class RealSystemOps:
         return result.returncode == 0
 
     def get_mariadb_version(self) -> str | None:
+        # In v2, MariaDB runs as a Docker container. The provisioned version
+        # is determined by the Docker image tag, not host RPM packages.
+        # Check v2 provisioned sources first, fall back to v1 host detection
+        # only for initial migration when no v2 config exists yet.
+
+        # 1. v2 services config — the primary source of truth.
+        #    services.yml has MariaDBService.image (e.g., "mariadb:10.11").
+        services_yml = self.config_dir / "services.yml"
+        ver = _version_from_image_file(services_yml, "mariadb")
+        if ver:
+            return ver
+
+        # 2. Generated docker-compose.yml — if config was generated but
+        #    services.yml is missing or doesn't have the image.
+        compose_yml = self.config_dir / "generated" / "docker-compose.yml"
+        ver = _version_from_compose_file(compose_yml, "mariadb")
+        if ver:
+            return ver
+
+        # 3. docker inspect on the nopanel-mariadb container — works even
+        #    when the container is stopped (but not removed).
         try:
             result = subprocess.run(
-                ["mysql", "--version"], capture_output=True, text=True
+                ["docker", "inspect", "nopanel-mariadb",
+                 "--format", "{{.Config.Image}}"],
+                capture_output=True, text=True,
             )
-            if result.returncode == 0:
-                # Parse "mysql  Ver 15.1 Distrib 10.11.8-MariaDB ..."
-                for part in result.stdout.split():
-                    if "MariaDB" in part or (part and part[0].isdigit()):
-                        # Extract version like 10.11.8
-                        ver = part.split("-")[0]
-                        if ver and ver[0].isdigit():
-                            return ver
+            if result.returncode == 0 and result.stdout.strip():
+                ver = _parse_version_from_image_tag(result.stdout.strip())
+                if ver:
+                    return ver
         except FileNotFoundError:
             pass
+
+        # 4. Last resort: v1 host RPM query — only during initial migration
+        #    when no v2 container has been provisioned yet.
+        for pkg in ("MariaDB-server", "mariadb-server"):
+            try:
+                result = subprocess.run(
+                    ["rpm", "-q", "--qf", "%{VERSION}", pkg],
+                    capture_output=True, text=True,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    ver = result.stdout.strip().split("-")[0]
+                    if ver and ver[0].isdigit():
+                        return ver
+            except FileNotFoundError:
+                break
+
         return None
 
     def get_installed_php_versions(self) -> list[str]:

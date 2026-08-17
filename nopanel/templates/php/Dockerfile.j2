@@ -18,5 +18,9 @@ RUN docker-php-ext-install {{ core_extensions | join(" ") }}
 RUN pecl install {{ ext }} && docker-php-ext-enable {{ ext }}
 {% endfor %}
 
+# OPcache tuning (loaded after the extension's default ini; last value wins)
+RUN printf 'opcache.enable_file_override=1\nopcache.max_accelerated_files=40000\nopcache.memory_consumption=256\n' \
+    > /usr/local/etc/php/conf.d/zz-opcache-tune.ini
+
 # Set working directory
 WORKDIR /var/www/html
