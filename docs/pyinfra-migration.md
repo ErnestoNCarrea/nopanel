@@ -2,16 +2,37 @@
 
 ## Status: Implemented
 
-pyInfra 3.10+ is a required dependency. `PyInfraHostOps` and `PyInfraSystemOps` are implemented and tested (27 tests, mock-based).
+pyInfra 3.10+ is a required dependency. The host operations architecture
+uses two orthogonal axes: **transport** (how commands reach the host) and
+**strategy** (how operations are expressed).
+
+## Architecture
+
+```
+Transport (how to reach the host):
+  LocalTransport     — direct subprocess (nopanel on host)
+  NsenterTransport   — nsenter -t 1 -m -u -i -n -- (privileged container)
+
+Strategy (how to execute operations):
+  PyInfraHostOps     — declarative, idempotent via pyInfra
+
+Combined: PyInfraHostOps(transport=LocalTransport())
+          PyInfraHostOps(transport=NsenterTransport())
+
+Special cases (not transport/strategy based):
+  PendingCommandsHostOps — queues to file (no host access)
+  NoOpHostOps            — dry-run / --no-host
+```
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `nopanel/pyinfra_backend.py` | `PyInfraHostOps` (HostOps protocol) + `PyInfraSystemOps` (SystemOps adapter) |
-| `nopanel/orchestrator.py` | `build_inventory()` — builds pyInfra Inventory + Config from nopanel config |
-| `nopanel/host_ops.py` | `auto_detect_host_ops(prefer_pyinfra=True)` — pyInfra detection branch |
-| `tests/test_pyinfra_host_ops.py` | 27 tests (mock-based, no real pyInfra connection needed) |
+| `nopanel/host_ops.py` | `HostTransport` protocol, `LocalTransport`, `NsenterTransport`, `detect_transport()`, `HostOps` protocol, `PendingCommandsHostOps`, `NoOpHostOps`, `auto_detect_host_ops()` |
+| `nopanel/pyinfra_backend.py` | `PyInfraHostOps` (strategy), `NsenterConnector` (pyInfra connector for nsenter), `PyInfraSystemOps` (SystemOps adapter) |
+| `nopanel/orchestrator.py` | `build_inventory()` — builds pyInfra Inventory + Config from transport detection |
+| `tests/test_host_ops.py` | Transport + pending-commands + no-op tests |
+| `tests/test_pyinfra_host_ops.py` | 27 pyInfra tests (mock-based) |
 
 ## Operation Mapping
 
@@ -28,37 +49,38 @@ pyInfra 3.10+ is a required dependency. `PyInfraHostOps` and `PyInfraSystemOps` 
 | `query_package_version` | `get_facts(RpmPackage, package)` |
 | `query_packages` | `get_facts(RpmPackages)` + glob filter |
 
-## Transport
+## Transport Details
 
-| Mode | Config | Use case |
+| Transport | pyInfra target | Use case |
 |---|---|---|
-| `@local` | `ssh_target=None` (default) | Privileged container with `--pid=host` |
-| SSH | `ssh_target="user@host:port"` | Remote host, unprivileged container |
+| `LocalTransport` | `@local` | nopanel runs directly on host |
+| `NsenterTransport` | `@nsenter` (custom connector) | Privileged container with `--pid=host` |
+
+The `@nsenter` connector subclasses pyInfra's `LocalConnector` and prefixes
+every command with `nsenter -t 1 -m -u -i -n --`. It is registered
+dynamically at runtime via `_register_nsenter_connector()`.
 
 ## Auto-detection
 
-`auto_detect_host_ops()` tries backends in this order:
+`auto_detect_host_ops()`:
 
-1. **pyInfra** — only if `prefer_pyinfra=True` (avoids unexpected sudo prompts)
-2. **nsenter** — if `nsenter -t 1 -m -- true` succeeds
-3. **pending-commands** — fallback
+1. If `prefer_pyinfra=True`: calls `detect_transport()` → creates
+   `PyInfraHostOps(transport=detected_transport)`.
+2. Otherwise: falls back to `PendingCommandsHostOps`.
 
-pyInfra is not tried by default because `@local` transport requires sudo, which may prompt for a password in non-interactive contexts.
+`detect_transport()` tries nsenter first, then local, then returns `None`.
 
-## pyInfra vs nsenter
-
-| Aspect | nsenter | pyInfra |
-|---|---|---|
-| Execution | Direct, in-process | Declarative, idempotent |
-| Container reqs | `--privileged --pid=host` | SSH or `@local` (nsenter) |
-| Host reqs | None | SSH server (or `@local`) |
-| Idempotency | No (manual checks) | Yes (built-in) |
-| Dry-run | Manual | `--dry` flag built-in |
-| Audit trail | Manual logging | Operation diff output |
-| Complexity | Low | Medium |
+pyInfra is not tried by default because `@local` transport requires sudo,
+which may prompt for a password in non-interactive contexts.
 
 ## Design Notes
 
-- pyInfra's `server.user` `password` parameter expects a pre-encrypted hash. We use `server.shell` with `chpasswd` for plaintext passwords instead.
-- Each operation creates a fresh pyInfra State (connect → add_op → run_ops → disconnect). This is simpler than maintaining a long-lived connection and matches the one-shot nature of nopanel commits.
-- `PyInfraSystemOps` reuses the same MariaDB version detection logic as `NsenterSystemOps` (checks v2 config, docker inspect, then host RPM via pyInfra facts).
+- pyInfra's `server.user` `password` parameter expects a pre-encrypted hash.
+  We use `server.shell` with `chpasswd` for plaintext passwords instead.
+- Each operation creates a fresh pyInfra State (connect → add_op → run_ops).
+  This matches the one-shot nature of nopanel commits.
+- `PyInfraSystemOps` reuses the same MariaDB version detection logic
+  (checks v2 config, docker inspect, then host RPM via pyInfra facts).
+- The `NsenterConnector` is a proper pyInfra connector (subclass of
+  `LocalConnector`), not a wrapper. pyInfra's operation scheduling, fact
+  gathering, and sudo handling all work transparently through it.

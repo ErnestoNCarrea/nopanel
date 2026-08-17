@@ -402,10 +402,11 @@ class CommitEngine:
     ) -> list[HostOpResult]:
         """Apply system user changes via the pluggable HostOps backend.
 
-        For backends that can manage the host directly (e.g. nsenter),
-        operations are executed immediately. For queue-based backends
-        (e.g. pending-commands), commands are written to a file for
-        later execution by the host wrapper.
+        For backends that can manage the host directly (e.g. pyInfra
+        with local or nsenter transport), operations are executed
+        immediately. For queue-based backends (e.g. pending-commands),
+        commands are written to a file for later execution by the host
+        wrapper.
 
         Returns a list of HostOpResult, one per operation.
         """

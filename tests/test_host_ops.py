@@ -1,4 +1,4 @@
-"""Tests for nopanel.host_ops — pluggable host operations backends."""
+"""Tests for nopanel.host_ops — transports, pending-commands, no-op."""
 
 from __future__ import annotations
 
@@ -10,20 +10,21 @@ from nopanel.docker_manager import CommandResult
 from nopanel.host_ops import (
     LOGIN_SHELLS,
     HostOpResult,
+    HostTransport,
+    LocalTransport,
     NoOpHostOps,
-    NsenterHostOps,
-    NsenterSystemOps,
+    NsenterTransport,
     PendingCommandsHostOps,
 )
 from nopanel.models import LoginType
 
 
 # ---------------------------------------------------------------------------
-# Mock runner for NsenterHostOps
+# Mock transport for testing
 # ---------------------------------------------------------------------------
 
 
-class MockHostRunner:
+class MockTransport:
     """Records all calls and returns configurable results."""
 
     def __init__(self, returncode: int = 0, stdout: str = "", stderr: str = ""):
@@ -31,6 +32,10 @@ class MockHostRunner:
         self._returncode = returncode
         self._stdout = stdout
         self._stderr = stderr
+
+    @property
+    def name(self) -> str:
+        return "mock"
 
     def run(self, args: list[str], stdin: str | None = None) -> CommandResult:
         self.calls.append((list(args), stdin))
@@ -170,208 +175,90 @@ class TestPendingCommandsHostOps:
 
 
 # ---------------------------------------------------------------------------
-# NsenterHostOps
+# LocalTransport
 # ---------------------------------------------------------------------------
 
 
-class TestNsenterHostOps:
-    def test_can_manage_host_true(self):
-        ops = NsenterHostOps(runner=MockHostRunner())
-        assert ops.can_manage_host is True
+class TestLocalTransport:
+    def test_name(self):
+        t = LocalTransport()
+        assert t.name == "local"
 
-    def test_nsenter_prefix_in_all_calls(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        ops.stop_service("httpd")
+    def test_run_success(self):
+        t = LocalTransport()
+        result = t.run(["true"])
+        assert result.returncode == 0
 
-        assert len(runner.calls) == 1
-        args = runner.calls[0][0]
-        assert args[:5] == ["nsenter", "-t", "1", "-m", "-u", "-i", "-n"][:5]
-        assert args[0] == "nsenter"
-        assert "-t" in args
-        assert "1" in args
+    def test_run_failure(self):
+        t = LocalTransport()
+        result = t.run(["false"])
+        assert result.returncode != 0
 
-    def test_create_user(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.create_user("alice", "/sbin/nologin", "pass12345")
+    def test_run_with_stdout(self):
+        t = LocalTransport()
+        result = t.run(["echo", "hello"])
+        assert result.returncode == 0
+        assert "hello" in result.stdout
 
-        assert result.success is True
-        # Two calls: useradd + chpasswd
-        assert len(runner.calls) == 2
-        assert "useradd" in runner.calls[0][0]
-        assert "-m" in runner.calls[0][0]
-        assert "-s" in runner.calls[0][0]
-        assert runner.calls[1][1] == "alice:pass12345\n"  # stdin for chpasswd
-
-    def test_create_user_no_password(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.create_user("alice", "/sbin/nologin")
-
-        assert result.success is True
-        assert len(runner.calls) == 1
-
-    def test_create_user_failure(self):
-        runner = MockHostRunner(returncode=1, stderr="user already exists")
-        ops = NsenterHostOps(runner=runner)
-        result = ops.create_user("alice", "/sbin/nologin")
-
-        assert result.success is False
-        assert "user already exists" in result.stderr
-
-    def test_set_user_password(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.set_user_password("alice", "newpass")
-
-        assert result.success is True
-        assert len(runner.calls) == 1
-        assert runner.calls[0][1] == "alice:newpass\n"
-
-    def test_set_user_shell(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.set_user_shell("alice", "/bin/bash")
-
-        assert result.success is True
-        args = runner.calls[0][0]
-        assert "chsh" in args
-        assert "/bin/bash" in args
-
-    def test_delete_user_with_home(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.delete_user("alice", remove_home=True)
-
-        assert result.success is True
-        args = runner.calls[0][0]
-        assert "userdel" in args
-        assert "-r" in args
-
-    def test_delete_user_without_home(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.delete_user("alice", remove_home=False)
-
-        assert result.success is True
-        args = runner.calls[0][0]
-        assert "userdel" in args
-        assert "-r" not in args
-
-    def test_stop_service(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.stop_service("httpd")
-
-        assert result.success is True
-        args = runner.calls[0][0]
-        assert "systemctl" in args
-        assert "stop" in args
-        assert "httpd" in args
-
-    def test_start_service(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.start_service("mariadb")
-
-        assert result.success is True
-        args = runner.calls[0][0]
-        assert "start" in args
-
-    def test_disable_service(self):
-        runner = MockHostRunner()
-        ops = NsenterHostOps(runner=runner)
-        result = ops.disable_service("httpd")
-
-        assert result.success is True
-        args = runner.calls[0][0]
-        assert "disable" in args
-
-    def test_detect_os(self):
-        runner = MockHostRunner(
-            stdout='ID="almalinux"\nVERSION="9.4"\n'
-        )
-        ops = NsenterHostOps(runner=runner)
-        os_id = ops.detect_os()
-        assert os_id == "almalinux"
-
-    def test_detect_os_failure(self):
-        runner = MockHostRunner(returncode=1)
-        ops = NsenterHostOps(runner=runner)
-        assert ops.detect_os() == "unknown"
-
-    def test_query_package_version(self):
-        runner = MockHostRunner(stdout="10.11.8")
-        ops = NsenterHostOps(runner=runner)
-        ver = ops.query_package_version("MariaDB-server")
-        assert ver == "10.11.8"
-
-    def test_query_package_version_not_found(self):
-        runner = MockHostRunner(returncode=1, stderr="not installed")
-        ops = NsenterHostOps(runner=runner)
-        assert ops.query_package_version("nonexistent") is None
-
-    def test_query_packages(self):
-        runner = MockHostRunner(
-            stdout="php82-php-fpm-8.2.15-1.el9.x86_64\nphp83-php-fpm-8.3.2-1.el9.x86_64\n"
-        )
-        ops = NsenterHostOps(runner=runner)
-        packages = ops.query_packages("php*-php-fpm")
-        assert len(packages) == 2
-        assert "php82-php-fpm" in packages[0]
-
-    def test_query_packages_failure(self):
-        runner = MockHostRunner(returncode=1)
-        ops = NsenterHostOps(runner=runner)
-        assert ops.query_packages("php*") == []
+    def test_run_with_stdin(self):
+        t = LocalTransport()
+        result = t.run(["cat"], stdin="test input\n")
+        assert result.returncode == 0
+        assert "test input" in result.stdout
 
 
 # ---------------------------------------------------------------------------
-# NsenterSystemOps (adapter for MigrationEngine)
+# NsenterTransport
 # ---------------------------------------------------------------------------
 
 
-class TestNsenterSystemOps:
-    def test_detect_os(self):
-        host_ops = NsenterHostOps(runner=MockHostRunner(stdout='ID="rocky"\n'))
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        assert sysops.detect_os() == "rocky"
+class TestNsenterTransport:
+    def test_name(self):
+        t = NsenterTransport()
+        assert t.name == "nsenter"
 
-    def test_stop_service(self):
-        host_ops = NsenterHostOps(runner=MockHostRunner())
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        assert sysops.stop_service("httpd") is True
+    def test_prefix_format(self):
+        assert NsenterTransport.PREFIX == ["nsenter", "-t", "1", "-m", "-u", "-i", "-n"]
 
-    def test_stop_service_failure(self):
-        host_ops = NsenterHostOps(runner=MockHostRunner(returncode=1))
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        assert sysops.stop_service("httpd") is False
+    def test_run_prefixes_command(self):
+        """Verify that NsenterTransport prefixes args with nsenter."""
+        import subprocess
+        from unittest.mock import patch
 
-    def test_start_service(self):
-        host_ops = NsenterHostOps(runner=MockHostRunner())
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        assert sysops.start_service("mariadb") is True
+        t = NsenterTransport()
+        with patch.object(subprocess, "run") as mock_run:
+            mock_run.return_value = subprocess.CompletedProcess(
+                args=[], returncode=0, stdout="", stderr=""
+            )
+            t.run(["systemctl", "stop", "httpd"])
+            call_args = mock_run.call_args[0][0]
+            assert call_args[:7] == ["nsenter", "-t", "1", "-m", "-u", "-i", "-n"]
+            assert call_args[7:] == ["systemctl", "stop", "httpd"]
 
-    def test_disable_service(self):
-        host_ops = NsenterHostOps(runner=MockHostRunner())
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        assert sysops.disable_service("httpd") is True
 
-    def test_get_installed_php_versions(self):
-        runner = MockHostRunner(
-            stdout="php82-php-fpm-8.2.15-1.el9.x86_64\nphp83-php-fpm-8.3.2-1.el9.x86_64\n"
-        )
-        host_ops = NsenterHostOps(runner=runner)
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        versions = sysops.get_installed_php_versions()
-        assert "8.2" in versions
-        assert "8.3" in versions
+# ---------------------------------------------------------------------------
+# HostTransport protocol
+# ---------------------------------------------------------------------------
 
-    def test_get_installed_php_versions_empty(self):
-        host_ops = NsenterHostOps(runner=MockHostRunner(returncode=1))
-        sysops = NsenterSystemOps(host_ops=host_ops)
-        assert sysops.get_installed_php_versions() == []
+
+class TestHostTransportProtocol:
+    def test_mock_transport_satisfies_protocol(self):
+        t = MockTransport()
+        assert hasattr(t, "name")
+        assert hasattr(t, "run")
+        assert t.name == "mock"
+
+    def test_local_transport_satisfies_protocol(self):
+        t = LocalTransport()
+        assert hasattr(t, "name")
+        assert hasattr(t, "run")
+        assert t.name == "local"
+
+    def test_nsenter_transport_satisfies_protocol(self):
+        t = NsenterTransport()
+        assert hasattr(t, "name")
+        assert hasattr(t, "run")
+        assert t.name == "nsenter"
 
 
 # ---------------------------------------------------------------------------

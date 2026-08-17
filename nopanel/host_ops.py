@@ -1,13 +1,18 @@
-"""Pluggable host operations backend.
+"""Pluggable host operations — transport + strategy architecture.
 
-Provides a Protocol for host system operations (user management,
-service management, host introspection) with multiple implementations:
+**Transport** determines how commands reach the host:
 
-- PendingCommandsHostOps: queues user commands to a file for later
-  execution by the host wrapper script (current/legacy behavior).
-- NsenterHostOps: direct execution via ``nsenter -t 1 -m -u -i -n --``
-  (requires ``--privileged`` and ``--pid=host`` on the container).
-- NoOpHostOps: no-op for dry-run or when host management is disabled.
+- ``LocalTransport``: direct subprocess (nopanel on host).
+- ``NsenterTransport``: ``nsenter -t 1 -m -u -i -n --`` (privileged container).
+
+**Strategy** determines how operations are expressed:
+
+- ``PyInfraHostOps``: declarative, idempotent via pyInfra (only strategy implemented).
+
+**Special cases** (not transport/strategy based):
+
+- ``PendingCommandsHostOps``: queues commands to a file (no host access).
+- ``NoOpHostOps``: no-op for dry-run or ``--no-host``.
 
 The backend is selected at runtime via :func:`auto_detect_host_ops`
 or explicitly injected into ``CommitEngine`` / ``MigrationEngine``.
@@ -54,18 +59,29 @@ class HostOpResult:
 
 
 # ---------------------------------------------------------------------------
-# Runner protocol (supports stdin, unlike docker_manager.CommandRunner)
+# Transport protocol — how commands reach the host
 # ---------------------------------------------------------------------------
 
 
-class HostRunner(Protocol):
-    """Protocol for running host commands (injectable for testing)."""
+class HostTransport(Protocol):
+    """Transport for executing commands on the host.
+
+    Implementations determine the mechanism by which a command
+    reaches the host OS: direct subprocess, nsenter, SSH, etc.
+    """
+
+    @property
+    def name(self) -> str: ...
 
     def run(self, args: list[str], stdin: str | None = None) -> CommandResult: ...
 
 
-class SubprocessHostRunner:
-    """Default runner using subprocess with stdin support."""
+class LocalTransport:
+    """Direct subprocess execution — nopanel runs on the host."""
+
+    @property
+    def name(self) -> str:
+        return "local"
 
     def run(self, args: list[str], stdin: str | None = None) -> CommandResult:
         proc = subprocess.run(args, capture_output=True, text=True, input=stdin)
@@ -76,6 +92,62 @@ class SubprocessHostRunner:
         )
 
 
+class NsenterTransport:
+    """nsenter transport — requires ``--privileged`` and ``--pid=host``.
+
+    All commands are executed in the host's mount, UTS, IPC, and network
+    namespaces via::
+
+        nsenter -t 1 -m -u -i -n -- <command>
+    """
+
+    PREFIX = ["nsenter", "-t", "1", "-m", "-u", "-i", "-n"]
+
+    @property
+    def name(self) -> str:
+        return "nsenter"
+
+    def run(self, args: list[str], stdin: str | None = None) -> CommandResult:
+        proc = subprocess.run(
+            self.PREFIX + args, capture_output=True, text=True, input=stdin
+        )
+        return CommandResult(
+            returncode=proc.returncode,
+            stdout=proc.stdout,
+            stderr=proc.stderr,
+        )
+
+
+def detect_transport() -> HostTransport | None:
+    """Auto-detect the best available transport.
+
+    Returns ``NsenterTransport`` if nsenter to PID 1 succeeds,
+    otherwise ``LocalTransport`` if running directly on the host,
+    otherwise ``None`` (no direct host access).
+    """
+    try:
+        result = subprocess.run(
+            ["nsenter", "-t", "1", "-m", "--", "true"],
+            capture_output=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            logger.info("Transport: nsenter detected")
+            return NsenterTransport()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Check if we're on the host (not in a container)
+    try:
+        Path("/etc/os-release").read_text()
+        logger.info("Transport: local detected")
+        return LocalTransport()
+    except (FileNotFoundError, PermissionError):
+        pass
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # HostOps protocol
 # ---------------------------------------------------------------------------
@@ -84,8 +156,8 @@ class SubprocessHostRunner:
 class HostOps(Protocol):
     """Pluggable backend for host system operations.
 
-    Implementations differ in *how* they reach the host:
-    pending-file queue, nsenter, SSH, etc.  Callers (CommitEngine,
+    Implementations combine a transport (how to reach the host) with a
+    strategy (how to express operations).  Callers (CommitEngine,
     MigrationEngine) interact only with this protocol.
     """
 
@@ -300,199 +372,6 @@ class PendingCommandsHostOps:
 
 
 # ---------------------------------------------------------------------------
-# NsenterHostOps — direct execution via nsenter
-# ---------------------------------------------------------------------------
-
-
-class NsenterHostOps:
-    """Host operations via ``nsenter`` — requires ``--privileged`` and ``--pid=host``.
-
-    All commands are executed in the host's mount, UTS, IPC, and network
-    namespaces via::
-
-        nsenter -t 1 -m -u -i -n -- <command>
-
-    This gives the container direct access to the host's filesystem,
-    systemd, and package manager without SSH or a host-side agent.
-    """
-
-    NSENTER_PREFIX = ["nsenter", "-t", "1", "-m", "-u", "-i", "-n"]
-
-    def __init__(self, runner: HostRunner | None = None) -> None:
-        self.runner = runner or SubprocessHostRunner()
-
-    @property
-    def can_manage_host(self) -> bool:
-        return True
-
-    def _run(self, args: list[str], stdin: str | None = None) -> HostOpResult:
-        result = self.runner.run(self.NSENTER_PREFIX + args, stdin=stdin)
-        return HostOpResult(
-            success=result.returncode == 0,
-            stdout=result.stdout,
-            stderr=result.stderr,
-        )
-
-    # -- User management (direct execution) -------------------------------
-
-    def create_user(
-        self, username: str, shell: str, password: str | None = None
-    ) -> HostOpResult:
-        result = self._run(["useradd", "-m", "-s", shell, username])
-        if not result.success:
-            return result
-        if password:
-            pwd_result = self.set_user_password(username, password)
-            if not pwd_result.success:
-                return pwd_result
-        return result
-
-    def set_user_password(self, username: str, password: str) -> HostOpResult:
-        return self._run(["chpasswd"], stdin=f"{username}:{password}\n")
-
-    def set_user_shell(self, username: str, shell: str) -> HostOpResult:
-        return self._run(["chsh", "-s", shell, username])
-
-    def delete_user(self, username: str, remove_home: bool = True) -> HostOpResult:
-        args = ["userdel"]
-        if remove_home:
-            args.append("-r")
-        args.append(username)
-        return self._run(args)
-
-    # -- Service management (direct via nsenter) --------------------------
-
-    def stop_service(self, service: str) -> HostOpResult:
-        return self._run(["systemctl", "stop", service])
-
-    def start_service(self, service: str) -> HostOpResult:
-        return self._run(["systemctl", "start", service])
-
-    def disable_service(self, service: str) -> HostOpResult:
-        return self._run(["systemctl", "disable", service])
-
-    # -- Host introspection (via nsenter) ---------------------------------
-
-    def detect_os(self) -> str:
-        result = self._run(["cat", "/etc/os-release"])
-        if result.success:
-            for line in result.stdout.splitlines():
-                if line.startswith("ID="):
-                    return line.split("=", 1)[1].strip('"').strip("'")
-        return "unknown"
-
-    def query_package_version(self, package: str) -> str | None:
-        result = self._run(["rpm", "-q", "--qf", "%{VERSION}", package])
-        if result.success and result.stdout.strip():
-            ver = result.stdout.strip().split("-")[0]
-            if ver and ver[0].isdigit():
-                return ver
-        return None
-
-    def query_packages(self, pattern: str) -> list[str]:
-        result = self._run(["rpm", "-qa", pattern])
-        if result.success:
-            return result.stdout.splitlines()
-        return []
-
-
-# ---------------------------------------------------------------------------
-# NsenterSystemOps — adapts NsenterHostOps to the SystemOps protocol
-# ---------------------------------------------------------------------------
-
-
-class NsenterSystemOps:
-    """Adapter that makes :class:`NsenterHostOps` satisfy the
-    ``SystemOps`` protocol used by :class:`~nopanel.migrate.MigrationEngine`.
-
-    This allows v1→v2 migration to run from inside a privileged container
-    with ``--pid=host`` instead of requiring nopanel to run directly on
-    the host.
-    """
-
-    def __init__(
-        self,
-        host_ops: NsenterHostOps | None = None,
-        config_dir: Path = DEFAULT_CONFIG_DIR,
-    ) -> None:
-        self.host_ops = host_ops or NsenterHostOps()
-        self.config_dir = config_dir
-
-    def detect_os(self) -> str:
-        return self.host_ops.detect_os()
-
-    def stop_service(self, service: str) -> bool:
-        return self.host_ops.stop_service(service).success
-
-    def start_service(self, service: str) -> bool:
-        return self.host_ops.start_service(service).success
-
-    def disable_service(self, service: str) -> bool:
-        return self.host_ops.disable_service(service).success
-
-    def get_mariadb_version(self) -> str | None:
-        from nopanel.migrate import (
-            _parse_version_from_image_tag,
-            _version_from_compose_file,
-            _version_from_image_file,
-        )
-
-        # 1. v2 services config
-        services_yml = self.config_dir / "services.yml"
-        ver = _version_from_image_file(services_yml, "mariadb")
-        if ver:
-            return ver
-
-        # 2. Generated docker-compose.yml
-        compose_yml = self.config_dir / "generated" / "docker-compose.yml"
-        ver = _version_from_compose_file(compose_yml, "mariadb")
-        if ver:
-            return ver
-
-        # 3. docker inspect (container-local, no host access needed)
-        try:
-            result = subprocess.run(
-                ["docker", "inspect", "nopanel-mariadb",
-                 "--format", "{{.Config.Image}}"],
-                capture_output=True, text=True,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                ver = _parse_version_from_image_tag(result.stdout.strip())
-                if ver:
-                    return ver
-        except FileNotFoundError:
-            pass
-
-        # 4. Host RPM query via nsenter
-        for pkg in ("MariaDB-server", "mariadb-server"):
-            ver = self.host_ops.query_package_version(pkg)
-            if ver:
-                return ver
-
-        return None
-
-    def get_installed_php_versions(self) -> list[str]:
-        versions: list[str] = []
-        packages = self.host_ops.query_packages("php*-php-fpm")
-        for line in packages:
-            if "-php-fpm" in line and line.startswith("php"):
-                parts = line.split("-")
-                if parts[0].startswith("php") and len(parts[0]) > 3:
-                    ver_str = parts[0][3:]
-                    if len(ver_str) >= 2:
-                        version = f"{ver_str[0]}.{ver_str[1:]}"
-                        if version not in versions:
-                            versions.append(version)
-        return sorted(versions)
-
-    def get_v1_user_list(self) -> list[str]:
-        from nopanel.config import read_v1_users
-
-        v1_users = read_v1_users(self.config_dir)
-        return list(v1_users.keys())
-
-
-# ---------------------------------------------------------------------------
 # Auto-detection
 # ---------------------------------------------------------------------------
 
@@ -503,51 +382,42 @@ def auto_detect_host_ops(
 ) -> HostOps:
     """Auto-detect the best available host operations backend.
 
-    Detection order (first match wins):
+    Detection combines transport auto-detection with strategy selection:
 
-    1. **pyInfra** — only if ``prefer_pyinfra=True``. Uses SSH or
-       @local transport depending on config.
-    2. **nsenter** — if running in a privileged container with
-       ``--pid=host`` (``nsenter -t 1 -m -- true`` succeeds).
-    3. **pending-commands** — fallback: queues commands to a file.
+    1. If ``prefer_pyinfra=True``: detect transport (nsenter or local),
+       then create ``PyInfraHostOps`` with that transport.
+    2. Otherwise: fall back to ``PendingCommandsHostOps`` (queues commands
+       to a file, no direct host access).
 
-    pyInfra is not tried by default because it requires a working
-    SSH or @local connection, which may prompt for credentials.
+    pyInfra is not tried by default because ``@local`` transport requires
+    sudo, which may prompt for credentials in non-interactive contexts.
     Use ``prefer_pyinfra=True`` or inject ``PyInfraHostOps`` directly.
 
     Args:
         config_dir: Path to nopanel config directory.
-        prefer_pyinfra: If True, try pyInfra before nsenter.
+        prefer_pyinfra: If True, try pyInfra with auto-detected transport.
     """
     if prefer_pyinfra:
         ops = _try_pyinfra(config_dir)
         if ops:
             return ops
 
-    # Try nsenter
-    try:
-        result = subprocess.run(
-            ["nsenter", "-t", "1", "-m", "--", "true"],
-            capture_output=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            logger.info("Host operations: using nsenter backend")
-            return NsenterHostOps()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
     logger.info("Host operations: using pending-commands backend")
     return PendingCommandsHostOps(config_dir=config_dir)
 
 
 def _try_pyinfra(config_dir: Path) -> HostOps | None:
-    """Try to create a PyInfraHostOps, return None if pyInfra unavailable."""
+    """Try to create a PyInfraHostOps with auto-detected transport."""
     try:
         from nopanel.pyinfra_backend import PyInfraHostOps
 
-        ops = PyInfraHostOps(config_dir=config_dir)
-        logger.info("Host operations: using pyInfra backend")
+        transport = detect_transport()
+        if transport is None:
+            logger.warning("No transport detected, cannot use pyInfra backend")
+            return None
+
+        ops = PyInfraHostOps(transport=transport, config_dir=config_dir)
+        logger.info("Host operations: using pyInfra backend (transport=%s)", transport.name)
         return ops
     except ImportError:
         return None

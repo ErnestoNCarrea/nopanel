@@ -1,28 +1,26 @@
-"""pyInfra-based host operations backend.
+"""pyInfra-based host operations — strategy layer.
 
 Uses pyInfra's programmatic API (v3.x) to execute host operations
-declaratively and idempotently. Supports two transports:
+declaratively and idempotently.  The transport (how commands reach
+the host) is injected via :class:`~nopanel.host_ops.HostTransport`:
 
-- **@local**: executes on the host where nopanel runs (for nsenter
-  containers, this is the host namespace via PID 1).
-- **ssh**: connects to a remote host via SSH.
+- ``LocalTransport``: pyInfra ``@local`` connector (nopanel on host).
+- ``NsenterTransport``: custom pyInfra ``@nsenter`` connector that
+  prefixes every command with ``nsenter -t 1 -m -u -i -n --``
+  (privileged container with ``--pid=host``).
 
-pyInfra is an optional dependency (``pip install nopanel[pyinfra]``).
-Importing this module without pyInfra installed raises ImportError
-with a helpful message.
+This module implements the **strategy** axis (pyInfra operations).
+The **transport** axis is defined in :mod:`nopanel.host_ops`.
 """
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from nopanel.config import DEFAULT_CONFIG_DIR
-from nopanel.host_ops import HostOpResult, HostOps
-
-if TYPE_CHECKING:
-    pass
+from nopanel.host_ops import HostOpResult, HostOps, HostTransport, LocalTransport
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +32,189 @@ def _require_pyinfra() -> None:
     except ImportError:
         raise ImportError(
             "pyInfra backend requires the 'pyinfra' package. "
-            "Install it with: pip install nopanel[pyinfra]"
+            "Install it with: pip install pyinfra>=3.10"
         ) from None
 
 
+# ---------------------------------------------------------------------------
+# NsenterConnector — pyInfra connector for nsenter transport
+# ---------------------------------------------------------------------------
+
+
+def _create_nsenter_connector_class() -> type:
+    """Create a pyInfra connector class that wraps commands with nsenter.
+
+    Subclasses ``LocalConnector`` and overrides ``run_shell_command``,
+    ``put_file``, and ``get_file`` to prefix commands with nsenter.
+    """
+    from pyinfra.connectors.local import LocalConnector
+
+    class NsenterConnector(LocalConnector):
+        """pyInfra connector that executes commands via nsenter.
+
+        All commands are prefixed with ``nsenter -t 1 -m -u -i -n --``
+        to run in the host's namespaces from a privileged container.
+        """
+
+        handles_execution = True
+        NSENTER_PREFIX = "nsenter -t 1 -m -u -i -n -- "
+
+        @override
+        @staticmethod
+        def make_names_data(name=None):
+            if name is not None:
+                from pyinfra.api.exceptions import InventoryError
+
+                raise InventoryError("Cannot have more than one @nsenter")
+            yield "@nsenter", {}, ["@nsenter"]
+
+        @override
+        def run_shell_command(
+            self,
+            command: Any,
+            print_output: bool = False,
+            print_input: bool = False,
+            **arguments: Any,
+        ) -> tuple[bool, Any]:
+            from pyinfra.connectors.local import (
+                execute_command_with_sudo_retry,
+                run_local_process,
+            )
+            from pyinfra.connectors.util import make_unix_command_for_host
+
+            arguments.pop("_get_pty", False)
+            _timeout = arguments.pop("_timeout", None)
+            _stdin = arguments.pop("_stdin", None)
+            _success_exit_codes = arguments.pop("_success_exit_codes", None)
+
+            unix_command = make_unix_command_for_host(
+                self.state, self.host, command, **arguments
+            )
+            raw = unix_command.get_raw_value()
+            actual_command = f"{self.NSENTER_PREFIX}{raw}"
+
+            logger.debug("--> Running command via nsenter: %s", actual_command)
+
+            if print_input:
+                from click import echo
+
+                echo(f"{self.host.print_prefix}>>> {actual_command}", err=True)
+
+            def execute_command() -> tuple[int, Any]:
+                return run_local_process(
+                    actual_command,
+                    stdin=_stdin,
+                    timeout=_timeout,
+                    print_output=print_output,
+                    print_prefix=self.host.print_prefix,
+                )
+
+            return_code, combined_output = execute_command_with_sudo_retry(
+                self.host,
+                arguments,
+                execute_command,
+            )
+
+            if _success_exit_codes:
+                status = return_code in _success_exit_codes
+            else:
+                status = return_code == 0
+
+            return status, combined_output
+
+        @override
+        def put_file(
+            self,
+            filename_or_io: Any,
+            remote_filename: str,
+            remote_temp_filename: str | None = None,
+            print_output: bool = False,
+            print_input: bool = False,
+            **arguments: Any,
+        ) -> bool:
+            import os
+            import shutil
+            import tempfile
+
+            _, temp_filename = tempfile.mkstemp()
+            try:
+                if isinstance(filename_or_io, str):
+                    shutil.copy(filename_or_io, temp_filename)
+                else:
+                    with open(temp_filename, "wb") as f:
+                        shutil.copyfileobj(filename_or_io, f)
+
+                cmd = f"cp {temp_filename} {remote_filename}"
+                status, _ = self.run_shell_command(
+                    cmd, print_output=print_output, print_input=print_input
+                )
+                return status
+            finally:
+                os.unlink(temp_filename)
+
+        @override
+        def get_file(
+            self,
+            remote_filename: str,
+            filename_or_io: Any,
+            remote_temp_filename: str | None = None,
+            print_output: bool = False,
+            print_input: bool = False,
+            **arguments: Any,
+        ) -> bool:
+            import os
+            import shutil
+            import tempfile
+
+            _, temp_filename = tempfile.mkstemp()
+            try:
+                cmd = f"cp {remote_filename} {temp_filename}"
+                status, _ = self.run_shell_command(
+                    cmd, print_output=print_output, print_input=print_input
+                )
+                if not status:
+                    return False
+
+                if isinstance(filename_or_io, str):
+                    shutil.copy(temp_filename, filename_or_io)
+                else:
+                    with open(temp_filename, "rb") as f:
+                        shutil.copyfileobj(f, filename_or_io)
+                return True
+            finally:
+                os.unlink(temp_filename)
+
+    return NsenterConnector
+
+
+def _register_nsenter_connector() -> None:
+    """Register the @nsenter connector in pyInfra's connector registry."""
+    from pyinfra.api.inventory import get_all_connectors, get_execution_connectors
+
+    connector_cls = _create_nsenter_connector_class()
+
+    all_connectors = get_all_connectors()
+    all_connectors["nsenter"] = connector_cls
+
+    exec_connectors = get_execution_connectors()
+    exec_connectors["nsenter"] = connector_cls
+
+
+# ---------------------------------------------------------------------------
+# PyInfraHostOps — the strategy implementation
+# ---------------------------------------------------------------------------
+
+
 class PyInfraHostOps:
-    """Host operations via pyInfra — declarative, idempotent, SSH or local.
+    """Host operations via pyInfra — declarative, idempotent.
+
+    Combines the pyInfra strategy with a :class:`HostTransport`:
+
+    - ``LocalTransport`` → pyInfra ``@local`` connector.
+    - ``NsenterTransport`` → custom ``@nsenter`` connector.
 
     Each operation creates a fresh pyInfra state, schedules the relevant
     operations, executes them, and returns a :class:`HostOpResult`.
-
-    Transport is determined by the ``ssh_target`` parameter:
-    - ``None`` (default): ``@local`` — runs on the current host.
-      Use this when nopanel runs directly on the host or inside a
-      privileged container with ``--pid=host`` (nsenter transport).
-    - ``"user@host"``: SSH to a remote host.
 
     All operations run with ``SUDO=True`` since host management
     requires root privileges.
@@ -56,14 +222,22 @@ class PyInfraHostOps:
 
     def __init__(
         self,
-        ssh_target: str | None = None,
+        transport: HostTransport | None = None,
         config_dir: Path = DEFAULT_CONFIG_DIR,
         sudo: bool = True,
     ) -> None:
         _require_pyinfra()
-        self.ssh_target = ssh_target
+        self.transport = transport or LocalTransport()
         self.config_dir = config_dir
         self.sudo = sudo
+
+    @property
+    def _target(self) -> str:
+        """pyInfra inventory target string for the configured transport."""
+        if self.transport.name == "nsenter":
+            _register_nsenter_connector()
+            return "@nsenter"
+        return "@local"
 
     @property
     def can_manage_host(self) -> bool:
@@ -76,7 +250,7 @@ class PyInfraHostOps:
         from pyinfra.api import Config, Inventory, State
         from pyinfra.api.connect import connect_all
 
-        target = self.ssh_target or "@local"
+        target = self._target
         inventory = Inventory(([target], {}))
         config = Config(SUDO=self.sudo)
         state = State(inventory=inventory, config=config)
@@ -89,17 +263,12 @@ class PyInfraHostOps:
 
         run_ops(state)
 
-        host = inventory.get_host(self.ssh_target or "@local")
+        host = inventory.get_host(self._target)
         results = state.get_results_for_host(host)
 
         success = results.error_ops == 0
-        # Collect any stderr/stdout from the operation
-        stderr = ""
         stdout = ""
-        for op_hash in state.get_op_order():
-            op_data = state.get_op_data_for_host(host, op_hash)
-            if op_data.operation_meta:
-                stdout += str(op_data.operation_meta) + "\n"
+        stderr = ""
 
         return HostOpResult(
             success=success,
@@ -125,7 +294,7 @@ class PyInfraHostOps:
 
         state, inventory = self._build_state()
         result = get_facts(state, fact_class, *args)
-        host = inventory.get_host(self.ssh_target or "@local")
+        host = inventory.get_host(self._target)
         return result.get(host)
 
     # -- User management --------------------------------------------------
@@ -135,34 +304,20 @@ class PyInfraHostOps:
     ) -> HostOpResult:
         from pyinfra.operations import server
 
-        kwargs: dict[str, Any] = {
-            "user": username,
-            "shell": shell,
-            "home": f"/home/{username}",
-            "create_home": True,
-            "present": True,
-        }
-        if password:
-            # pyInfra expects an encrypted password; we pass plaintext
-            # and let chpasswd handle it via a shell command.
-            result = self._run_single_op(
-                server.user,
-                name=f"Create user {username}",
-                user=username,
-                shell=shell,
-                home=f"/home/{username}",
-                create_home=True,
-                present=True,
-            )
-            if not result.success:
-                return result
-            # Set password via shell (pyInfra's password param expects hash)
-            return self.set_user_password(username, password)
-        return self._run_single_op(
+        result = self._run_single_op(
             server.user,
             name=f"Create user {username}",
-            **kwargs,
+            user=username,
+            shell=shell,
+            home=f"/home/{username}",
+            create_home=True,
+            present=True,
         )
+        if not result.success:
+            return result
+        if password:
+            return self.set_user_password(username, password)
+        return result
 
     def set_user_password(self, username: str, password: str) -> HostOpResult:
         from pyinfra.operations import server
@@ -291,8 +446,8 @@ class PyInfraSystemOps:
     """Adapter that makes :class:`PyInfraHostOps` satisfy the
     ``SystemOps`` protocol used by :class:`~nopanel.migrate.MigrationEngine`.
 
-    This allows v1→v2 migration to run via pyInfra (SSH or local)
-    instead of direct subprocess calls.
+    This allows v1→v2 migration to run via pyInfra with any transport
+    (local or nsenter) instead of direct subprocess calls.
     """
 
     def __init__(

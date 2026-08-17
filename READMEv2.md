@@ -120,9 +120,9 @@ nopanel/                  Python package
   config.py               YAML load/save, v1 JSON reading, v1→v2 conversion
   state.py                Committed state I/O, diff engine
   docker_manager.py       Docker Compose CLI wrapper
-  host_ops.py             Pluggable host operations backend (HostOps protocol)
-  pyinfra_backend.py      PyInfraHostOps + PyInfraSystemOps (pyInfra backend)
-  orchestrator.py         pyInfra inventory builder from nopanel config
+  host_ops.py             Transport protocol + HostOps protocol + pending/no-op backends
+  pyinfra_backend.py      PyInfraHostOps + PyInfraSystemOps + NsenterConnector (strategy)
+  orchestrator.py         pyInfra inventory builder from nopanel config + transport
   templates.py            Jinja2 template rendering functions
   commit.py               Commit engine (diff → generate → apply → reload → snapshot)
   migrate.py              Migration engine (v1→v2, RHEL-only)
@@ -153,23 +153,23 @@ pyproject.toml            Project metadata and dependencies
 - **Dual logging**: Docker json-file driver + volume-mounted per-domain Apache logs
 - **Host networking during migration**: Configurable network_mode (host or bridge)
 - **mod_md for SSL**: ACME certificates with global admin_email setting
-- **Pluggable host operations**: Host system user management (`useradd`,
-  `chpasswd`, `chsh`, `userdel`) and service management (`systemctl`) use a
-  pluggable `HostOps` backend with four implementations:
-  - **NsenterHostOps** (default when available): executes commands directly on
-    the host via `nsenter -t 1 -m -u -i -n --`, requiring `--privileged` and
-    `--pid=host` on the nopanel container. No host-side agent needed.
-  - **PyInfraHostOps** (opt-in via `prefer_pyinfra=True`): uses pyInfra's
-    programmatic API for declarative, idempotent host operations. Supports
-    `@local` (nsenter transport) or SSH transport. Requires `pyinfra>=3.10`.
+- **Transport + Strategy architecture**: Host operations are split into
+  two orthogonal axes:
+  - **Transport** (how commands reach the host): ``LocalTransport``
+    (direct subprocess) or ``NsenterTransport`` (``nsenter -t 1 -m -u -i -n --``,
+    requires ``--privileged`` and ``--pid=host``).
+  - **Strategy** (how operations are expressed): ``PyInfraHostOps`` —
+    declarative, idempotent via pyInfra 3.10+.
+  Combined: pyInfra + local, or pyInfra + nsenter.
+  Special cases (not transport/strategy based):
   - **PendingCommandsHostOps** (fallback): queues commands to
-    `pending-host-cmds.sh` for later execution by the host wrapper script
-    (`share/host/nopanel`). Commands are validated against a whitelist and
-    logged to `/var/log/nopanel/host-commands.log`.
+    `pending-host-cmds.sh` for later execution by the host wrapper script.
+    No host access required.
   - **NoOpHostOps**: no-op for `--no-host` or dry-run mode.
-  The backend is auto-detected at runtime by `auto_detect_host_ops()`. By
-  default, nsenter is tried first, then pending-commands. pyInfra is only
-  tried when `prefer_pyinfra=True` to avoid unexpected SSH/sudo prompts.
+  Transport is auto-detected by ``detect_transport()``. The backend is
+  selected by ``auto_detect_host_ops(prefer_pyinfra=True)`` which combines
+  transport detection with the pyInfra strategy. Without ``prefer_pyinfra``,
+  falls back to pending-commands.
 
 ## Testing
 
@@ -177,7 +177,7 @@ pyproject.toml            Project metadata and dependencies
 pytest
 ```
 
-Unit tests covering models, config I/O, state/diff, templates, services, commit engine, migration (including per-service, reconvert, diff, image pull, config generation, and post-migration cleanup), Docker manager, host operations (nsenter, pending-commands, no-op, pyInfra backends), and CLI.
+Unit tests covering models, config I/O, state/diff, templates, services, commit engine, migration, Docker manager, host operations (transports, pending-commands, no-op, pyInfra backends), and CLI.
 
 ## Documentation
 

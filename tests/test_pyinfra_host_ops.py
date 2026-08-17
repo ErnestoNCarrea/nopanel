@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nopanel.host_ops import HostOpResult
+from nopanel.host_ops import HostOpResult, LocalTransport
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +155,7 @@ def pyinfra_ops(mock_pyinfra, tmp_path: Path):
         del sys.modules["nopanel.pyinfra_backend"]
     from nopanel.pyinfra_backend import PyInfraHostOps
 
-    ops = PyInfraHostOps(config_dir=tmp_path)
+    ops = PyInfraHostOps(transport=LocalTransport(), config_dir=tmp_path)
     return ops, mock_pyinfra
 
 
