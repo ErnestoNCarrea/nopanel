@@ -1,4 +1,4 @@
-/var/log/apache2/*.log /var/log/apache2/domains/*log {
+/var/log/apache2/*.log /var/log/apache2/domains/*.log /var/log/apache2/domains/*.bytes {
     rotate 4
     weekly
     missingok
