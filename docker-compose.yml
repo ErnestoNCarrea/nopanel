@@ -20,6 +20,12 @@ services:
       # PHP-FPM custom image build context
       - ./docker:/opt/nopanel/docker:ro
     network_mode: host
+    # nsenter support: allows the container to manage host system users
+    # and services directly via nsenter -t 1. Requires --privileged and
+    # --pid=host. If these are removed, nopanel falls back to the
+    # pending-commands backend (host wrapper script).
+    pid: host
+    privileged: true
     logging:
       driver: json-file
       options:

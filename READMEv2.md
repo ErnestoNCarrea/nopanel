@@ -43,16 +43,13 @@ nopanel domain add --domain example.com --user alice --php 8.2 --ssl auto
 # Add a database
 nopanel database add --user alice --db blog --password dbpassword
 
-# Apply all changes (shows pending host commands if any)
+# Apply all changes (auto-detects nsenter or pending-commands backend)
 nopanel commit
 
-# Commit and automatically run host commands
-nopanel commit --run-host
-
-# Commit without checking for host commands
+# Commit without host operations (skip user management)
 nopanel commit --no-host
 
-# Run pending host commands separately
+# Run pending host commands separately (pending-commands backend only)
 nopanel host-commands --run
 
 # Check status
@@ -69,7 +66,7 @@ nopanel migrate
 ```
 nopanel init                              Initialize config directory
 nopanel status                            Show overall status and pending changes
-nopanel commit [--dry-run] [--service S] [--run-host] [--no-host]  Apply all pending configuration changes
+nopanel commit [--dry-run] [--service S] [--no-docker] [--no-host]  Apply all pending configuration changes
 
 nopanel user add --user U --password P [--fullname F] [--email E] [--login ssh|sftp|no] [--admin]
 nopanel user mod --user U [--password P] [--fullname F] [--email E] [--login ssh|sftp|no] [--admin]
@@ -123,6 +120,7 @@ nopanel/                  Python package
   config.py               YAML load/save, v1 JSON reading, v1→v2 conversion
   state.py                Committed state I/O, diff engine
   docker_manager.py       Docker Compose CLI wrapper
+  host_ops.py             Pluggable host operations backend (HostOps protocol)
   templates.py            Jinja2 template rendering functions
   commit.py               Commit engine (diff → generate → apply → reload → snapshot)
   migrate.py              Migration engine (v1→v2, RHEL-only)
@@ -146,21 +144,27 @@ pyproject.toml            Project metadata and dependencies
 ### Key Design Decisions
 
 - **Functional core**: Config parsing, diffing, template rendering are pure functions
-- **Dependency injection**: DockerManager, SQLExecutor, FileWriter, SystemOps are protocols
+- **Dependency injection**: DockerManager, SQLExecutor, FileWriter, SystemOps, HostOps are protocols
 - **Immutable models**: All Pydantic models are frozen for safe diffing
 - **Plaintext DB passwords**: Stored in YAML with strict file permissions (chmod 600)
 - **RHEL-only migration**: v1→v2 migration supports RHEL-based hosts only
 - **Dual logging**: Docker json-file driver + volume-mounted per-domain Apache logs
 - **Host networking during migration**: Configurable network_mode (host or bridge)
 - **mod_md for SSL**: ACME certificates with global admin_email setting
-- **Host-side system user management**: noPanel runs inside a container and cannot
-  directly create/modify/delete system users on the host. Instead, `nopanel commit`
-  generates the required `useradd`/`chpasswd`/`chsh`/`userdel` commands and prints
-  them for the administrator to run on the host. The host wrapper script
-  (`share/host/nopanel`) automates this: after `nopanel commit`, it detects pending
-  host commands and offers to run them. Use `nopanel host-commands --run` to apply
-  them manually. Commands are validated against a whitelist before execution and
-  logged to `/var/log/nopanel/host-commands.log`.
+- **Pluggable host operations**: Host system user management (`useradd`,
+  `chpasswd`, `chsh`, `userdel`) and service management (`systemctl`) use a
+  pluggable `HostOps` backend with three implementations:
+  - **NsenterHostOps** (default when available): executes commands directly on
+    the host via `nsenter -t 1 -m -u -i -n --`, requiring `--privileged` and
+    `--pid=host` on the nopanel container. No host-side agent needed.
+  - **PendingCommandsHostOps** (fallback): queues commands to
+    `pending-host-cmds.sh` for later execution by the host wrapper script
+    (`share/host/nopanel`). Commands are validated against a whitelist and
+    logged to `/var/log/nopanel/host-commands.log`.
+  - **NoOpHostOps**: no-op for `--no-host` or dry-run mode.
+  The backend is auto-detected at runtime by `auto_detect_host_ops()`. Removing
+  `--privileged` and `--pid=host` from the compose file automatically falls back
+  to the pending-commands workflow.
 
 ## Testing
 
@@ -168,7 +172,7 @@ pyproject.toml            Project metadata and dependencies
 pytest
 ```
 
-Unit tests covering models, config I/O, state/diff, templates, services, commit engine, migration (including per-service, reconvert, diff, image pull, config generation, and post-migration cleanup), Docker manager, and CLI.
+Unit tests covering models, config I/O, state/diff, templates, services, commit engine, migration (including per-service, reconvert, diff, image pull, config generation, and post-migration cleanup), Docker manager, host operations (nsenter, pending-commands, no-op backends), and CLI.
 
 ## Documentation
 

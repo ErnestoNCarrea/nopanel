@@ -12,10 +12,8 @@ from __future__ import annotations
 import fcntl
 import logging
 import re
-import shlex
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -25,6 +23,13 @@ from nopanel.config import (
     save_config,
 )
 from nopanel.docker_manager import DockerManager
+from nopanel.host_ops import (
+    LOGIN_SHELLS,
+    HostOps,
+    HostOpResult,
+    NoOpHostOps,
+    PendingCommandsHostOps,
+)
 from nopanel.services.base import GENERATED_DIR, SELF_SIGNED_DIR
 from nopanel.models import Database, FullConfig, LoginType, SSLMode
 from nopanel.services.database import (
@@ -43,12 +48,6 @@ from nopanel.state import (
 from nopanel.templates import render_compose
 
 logger = logging.getLogger(__name__)
-
-_LOGIN_SHELLS = {
-    LoginType.SSH: "/bin/bash",
-    LoginType.SFTP: "/sbin/nologin",
-    LoginType.NO: "/sbin/nologin",
-}
 
 # Lock file to prevent concurrent commits (relative to config_dir at runtime)
 LOCK_FILE_NAME = ".commit.lock"
@@ -163,11 +162,13 @@ class CommitEngine:
         docker_manager: DockerManager | None = None,
         sql_executor: SQLExecutor | None = None,
         file_writer: FileWriter | None = None,
+        host_ops: HostOps | None = None,
     ) -> None:
         self.config_dir = config_dir
         self.docker = docker_manager
         self.sql = sql_executor
         self.file_writer = file_writer or RealFileWriter(GENERATED_DIR)
+        self.host_ops = host_ops or PendingCommandsHostOps(config_dir=config_dir)
 
     def run(self, dry_run: bool = False, service_filter: str | None = None) -> CommitResult:
         """Run the full commit workflow.
@@ -253,19 +254,23 @@ class CommitEngine:
         except Exception as e:
             errors.append(f"Self-signed cert generation failed: {e}")
 
-        # 3c. Generate host commands for system user changes
+        # 3c. Apply host user changes (or queue pending commands)
         host_commands: list[str] = []
         if not service_filter or service_filter == "users":
             pending_file = self.config_dir / "pending-host-cmds.sh"
-            # Warn if previous host commands are still pending
-            if pending_file.exists():
+            # Warn if previous host commands are still pending (only relevant
+            # for the pending-commands backend)
+            if not self.host_ops.can_manage_host and pending_file.exists():
                 errors.append(
                     f"Pending host commands in {pending_file} have not been "
                     f"executed yet. Run 'nopanel host-commands --run' on the host first."
                 )
-            host_commands = self._generate_host_commands(diff, desired, committed)
-            if host_commands:
-                self._write_pending_host_commands(host_commands, pending_file)
+            host_results = self._apply_host_user_changes(diff, desired, committed)
+            for r in host_results:
+                if not r.success:
+                    errors.append(f"Host operation failed: {r.message or r.stderr}")
+                if not r.executed and r.commands:
+                    host_commands.extend(r.commands)
 
         # 4. Generate configs (skip irrelevant sections when service_filter is set)
         config_errors = False
@@ -392,29 +397,30 @@ class CommitEngine:
             errors=errors,
         )
 
-    def _generate_host_commands(
+    def _apply_host_user_changes(
         self, diff: ConfigDiff, desired: FullConfig, committed: FullConfig
-    ) -> list[str]:
-        """Generate shell commands for system user changes.
+    ) -> list[HostOpResult]:
+        """Apply system user changes via the pluggable HostOps backend.
 
-        Since noPanel runs inside a container, it cannot directly manage
-        host system users. This method produces the commands that the
-        administrator must run on the host.
+        For backends that can manage the host directly (e.g. nsenter),
+        operations are executed immediately. For queue-based backends
+        (e.g. pending-commands), commands are written to a file for
+        later execution by the host wrapper.
 
-        Returns a list of shell command strings.
+        Returns a list of HostOpResult, one per operation.
         """
-        commands: list[str] = []
+        results: list[HostOpResult] = []
 
         # Create new users
         for change in diff.users.added:
             username = change.name
             user_data = change.new or {}
             login = LoginType(user_data.get("login", "sftp"))
-            shell = _LOGIN_SHELLS.get(login, "/sbin/nologin")
-            commands.append(f"useradd -m -s {shlex.quote(shell)} {shlex.quote(username)}")
-            password = user_data.get("password", "")
-            if password:
-                commands.append(f"echo {shlex.quote(f'{username}:{password}')} | chpasswd")
+            shell = LOGIN_SHELLS.get(login, "/sbin/nologin")
+            password = user_data.get("password") or None
+            results.append(
+                self.host_ops.create_user(username, shell, password)
+            )
 
         # Modify existing users (password or login type changes)
         for change in diff.users.modified:
@@ -423,35 +429,26 @@ class CommitEngine:
             new_data = change.new or {}
             # Update password if it changed
             if new_data.get("password") and new_data["password"] != old_data.get("password"):
-                commands.append(
-                    f"echo {shlex.quote(f'{username}:{new_data["password"]}')} | chpasswd"
+                results.append(
+                    self.host_ops.set_user_password(username, new_data["password"])
                 )
             # Update shell if login type changed
             old_login = LoginType(old_data.get("login", "sftp"))
             new_login = LoginType(new_data.get("login", "sftp"))
             if old_login != new_login:
-                new_shell = _LOGIN_SHELLS.get(new_login, "/sbin/nologin")
-                commands.append(f"chsh -s {shlex.quote(new_shell)} {shlex.quote(username)}")
+                new_shell = LOGIN_SHELLS.get(new_login, "/sbin/nologin")
+                results.append(
+                    self.host_ops.set_user_shell(username, new_shell)
+                )
 
         # Delete removed users
         for change in diff.users.deleted:
             username = change.name
-            commands.append(f"userdel -r {shlex.quote(username)}")
+            results.append(
+                self.host_ops.delete_user(username, remove_home=True)
+            )
 
-        return commands
-
-    def _write_pending_host_commands(self, commands: list[str], path: Path) -> None:
-        """Append host commands to the pending file in the shared volume.
-
-        Commands are appended with a batch header so multiple commits
-        can accumulate. The host wrapper reads and clears this file
-        after successful execution.
-        """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        batch = f"# batch: {timestamp}\n" + "\n".join(commands) + "\n"
-        with open(path, "a") as f:
-            f.write(batch)
-        path.chmod(0o600)
+        return results
 
     def _generate_configs(self, config: FullConfig, service_filter: str | None = None) -> dict[str, str]:
         """Generate all config files from desired state.

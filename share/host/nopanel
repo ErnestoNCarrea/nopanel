@@ -7,6 +7,12 @@
 # host-side operations that cannot run inside a container (system
 # user management: useradd, chpasswd, chsh, userdel).
 #
+# When the nopanel container runs with --privileged and --pid=host,
+# it uses nsenter to manage host users directly and this wrapper's
+# host-commands execution is not needed. When those options are not
+# set, the container falls back to the pending-commands backend and
+# this wrapper fetches and executes the queued commands.
+#
 # All batch tracking (accumulation, display, clearing) is handled by
 # the container app. This wrapper only fetches raw commands from the
 # container, executes them on the host, and notifies the container
@@ -14,13 +20,13 @@
 #
 # Usage:
 #   nopanel <any command>              Proxy to container
-#   nopanel commit [--run-host]        Commit; optionally run pending host commands
+#   nopanel commit                     Commit (nsenter backend runs host ops directly)
 #   nopanel host-commands              Show pending host commands (from container)
 #   nopanel host-commands --run        Run pending host commands on the host
 #
 # Options for commit:
-#   --run-host     Run pending host commands after a successful commit
-#   --no-host      Skip host command check entirely (proxy only)
+#   --no-host      Skip host operations entirely (config-only commit)
+#   --no-docker    Skip Docker operations (generate configs only)
 #
 # Environment variables:
 #   NOPANEL_CONTAINER  Container name (default: nopanel)

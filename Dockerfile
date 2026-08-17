@@ -14,13 +14,14 @@ COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
 # Docker CLI for compose operations + MariaDB client for SQL via socket
-RUN apt-get update && apt-get install -y --no-install-recommends docker.io mariadb-client && rm -rf /var/lib/apt/lists/*
+# util-linux provides nsenter for direct host management (--privileged + --pid=host)
+RUN apt-get update && apt-get install -y --no-install-recommends docker.io mariadb-client util-linux && rm -rf /var/lib/apt/lists/*
 # The Docker socket is mounted at runtime
 
 VOLUME ["/etc/nopanel", "/var/log/nopanel"]
 
 # noPanel needs access to the Docker socket for container management,
 # self-signed cert generation (openssl), and writing to /etc/nopanel.
-# System user management is delegated to the host administrator via
-# generated commands (nopanel user host-commands / nopanel commit).
+# Host system user management uses nsenter (if --privileged + --pid=host)
+# or falls back to pending-commands for the host wrapper script.
 ENTRYPOINT ["nopanel"]
