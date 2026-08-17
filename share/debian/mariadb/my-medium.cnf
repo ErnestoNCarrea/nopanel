@@ -36,6 +36,20 @@ myisam_sort_buffer_size = 8M
 
 #innodb_use_native_aio = 0
 innodb_file_per_table
+innodb_buffer_pool_size = 512M
+innodb_buffer_pool_instances = 2
+innodb_log_file_size = 128M
+innodb_io_capacity = 400
+innodb_io_capacity_max = 2000
+innodb_read_io_threads = 4
+innodb_write_io_threads = 4
+
+# Skip reverse DNS on connect -- removes per-connection DNS latency.
+# Safe when all grants use % / localhost / 127.0.0.1 (noPanel's default).
+skip_name_resolve = 1
+
+# Slow query log for visibility -- low overhead.
+slow_query_log = ON
 
 max_connections=100
 max_user_connections=30
