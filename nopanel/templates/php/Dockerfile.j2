@@ -4,19 +4,26 @@
 FROM php:{{ php_version }}-fpm-alpine
 
 # System dependencies for PHP extensions (gd, intl, zip, etc.)
+# Also includes build deps for PECL extensions (redis needs autoconf+build-base+lz4+zstd)
 RUN apk add --no-cache \
     libpng-dev \
     icu-dev \
     libzip-dev \
-    oniguruma-dev
+    oniguruma-dev \
+    && apk add --no-cache --virtual .pecl-build-deps \
+    autoconf \
+    build-base \
+    lz4-dev \
+    zstd-dev
 
-# Core extensions (built into PHP)
-RUN docker-php-ext-install {{ core_extensions | join(" ") }}
+# Core extensions (skip opcache — already built into PHP 8.5+ images)
+RUN docker-php-ext-install {{ core_extensions | reject("equalto", "opcache") | join(" ") }}
 
 # PECL extensions
 {% for ext in pecl_extensions %}
 RUN pecl install {{ ext }} && docker-php-ext-enable {{ ext }}
 {% endfor %}
+RUN apk del .pecl-build-deps 2>/dev/null || true
 
 # OPcache tuning (loaded after the extension's default ini; last value wins)
 RUN printf 'opcache.enable_file_override=1\nopcache.max_accelerated_files=40000\nopcache.memory_consumption=256\n' \

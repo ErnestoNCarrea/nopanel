@@ -11,7 +11,7 @@ from nopanel.migrate import MigrationEngine
 from nopanel.services.base import COMPOSE_FILE
 
 console = Console()
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=False)
 
 
 @app.callback(invoke_without_command=True)

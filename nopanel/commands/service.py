@@ -20,10 +20,11 @@ def _get_docker() -> DockerManager:
 @app.command("up")
 def service_up(
     services: list[str] = typer.Argument(None, help="Services to start (default: all)"),
+    build: bool = typer.Option(False, "--build", help="Build images before starting"),
 ) -> None:
     """Start service containers."""
     docker = _get_docker()
-    result = docker.compose_up(services if services else None)
+    result = docker.compose_up(services if services else None, build=build)
     if result.success:
         console.print("[green]Services started[/green]")
     else:

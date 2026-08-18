@@ -89,11 +89,24 @@ class DockerManager:
         """Build a docker compose command."""
         return ["docker", "compose", "-f", str(self.compose_file), *args]
 
-    def compose_up(self, services: list[str] | None = None, detach: bool = True) -> CommandResult:
-        """Start services (docker compose up)."""
+    def compose_up(
+        self,
+        services: list[str] | None = None,
+        detach: bool = True,
+        build: bool = False,
+    ) -> CommandResult:
+        """Start services (docker compose up).
+
+        Args:
+            services: Optional list of service names to start.
+            detach: Run in background (-d).
+            build: Build images before starting (--build).
+        """
         cmd = self._compose_cmd("up")
         if detach:
             cmd.append("-d")
+        if build:
+            cmd.append("--build")
         if services:
             cmd.extend(services)
         return self.runner.run(cmd)

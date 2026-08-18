@@ -229,9 +229,10 @@ class CommitEngine:
         if dry_run:
             return CommitResult(diff=diff, dry_run=True)
 
-        # Set up SQL executor if not provided and MariaDB has a root password
+        # Set up SQL executor if not provided and MariaDB has a root password.
+        # Skip when --no-docker: MariaDB runs in Docker, so SQL ops aren't possible.
         sql_executor = self.sql
-        if not sql_executor and desired.services.mariadb.root_password:
+        if not sql_executor and self.docker and desired.services.mariadb.root_password:
             from nopanel.services.database import RealSQLExecutor
             sql_executor = RealSQLExecutor(
                 root_password=desired.services.mariadb.root_password

@@ -39,6 +39,8 @@ services:
 {% for version in php_versions %}
   php-{{ version }}:
     image: {{ services.php[version]["image"] or "nopanel/php-" ~ version ~ ":latest" }}
+    build:
+      context: ./docker/php-{{ version }}
     container_name: nopanel-php-{{ version }}
     restart: unless-stopped
     network_mode: {{ network_mode }}

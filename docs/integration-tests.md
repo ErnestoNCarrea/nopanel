@@ -37,14 +37,20 @@ tests/integration/
 
 ## Prerequisites
 
-| Package | Status | Action |
+| Package | Status | Notes |
 |---|---|---|
-| `virt-install` | Installed | — |
-| `qemu-img` | Installed | — |
-| `mkisofs` | Installed | — |
-| `python3-paramiko` | Missing | `pip install paramiko` |
-| libvirt NAT network | Missing | Create in conftest |
-| `cloud-localds` | Missing | Optional, use `mkisofs` instead |
+| `virt-install` | Installed (5.1.0) | |
+| `qemu-img` | Installed (10.2.2) | |
+| `mkisofs` | Installed | For cloud-init seed ISO |
+| `python3-paramiko` | Installed (4.0.0) | SSH for VM access |
+| `libvirt-daemon-kvm` | Installed (12.0.0) | Modular libvirt on Fedora 44 |
+| `/dev/kvm` | Available | Hardware acceleration |
+| libvirt NAT network | Configured | `default` network, virbr0, DHCP 192.168.122.x |
+| libvirt storage pool | `gnome-boxes` (130 GiB free) | Can use for VM images |
+| `cloud-localds` | Not needed | Use `mkisofs` instead |
+| Passwordless sudo | Configured | `/etc/sudoers.d/nopanel` for pyInfra `@local` transport |
+| Docker + Compose | Installed (29.7.2 / v5.5.0) | For building/running nopanel container |
+| `nsenter` | Installed (`util-linux`) | For container-to-host transport |
 
 ## Implementation Order
 
