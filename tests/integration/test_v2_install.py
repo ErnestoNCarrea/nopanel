@@ -582,7 +582,8 @@ def _pull_and_start_services(ssh: SSHRunner) -> None:
     # Clean stale MariaDB data (previous runs may have initialized with empty password)
     ssh.run("rm -rf /var/lib/mysql/* 2>/dev/null || true", timeout=10)
 
-    for image in ["httpd:2.4-alpine", "mariadb:lts", "php:8.2-fpm-alpine"]:
+    for image in ["httpd:2.4-alpine", "mariadb:lts", "php:8.2-fpm-alpine",
+                   "php:8.3-fpm-alpine", "php:8.4-fpm-alpine", "php:8.5-fpm-alpine"]:
         r = ssh.run(f"docker pull {image} 2>&1", timeout=300)
         if r.exit_code != 0:
             pytest.skip(f"Cannot pull {image}: {r.stderr[-200:]}")
@@ -591,8 +592,35 @@ def _pull_and_start_services(ssh: SSHRunner) -> None:
     if result.exit_code != 0:
         pytest.skip(f"service up --build failed: {result.stdout[-300:]}")
 
-    # Wait for containers to be ready
-    time.sleep(20)
+    # Wait for containers to be ready — poll instead of fixed sleep.
+    # Apache needs to bind port 80; MariaDB needs to accept ping.
+    # Retry for up to 60s (was a fixed 20s sleep which was too short).
+    deadline = time.time() + 60
+    apache_ready = False
+    mariadb_ready = False
+    while time.time() < deadline:
+        if not apache_ready:
+            r = ssh.run("curl -sI http://localhost/ 2>&1 || true", timeout=10)
+            if r.exit_code == 0 and ("200" in r.stdout or "301" in r.stdout or "302" in r.stdout or "403" in r.stdout or "404" in r.stdout):
+                apache_ready = True
+        if not mariadb_ready:
+            r = ssh.run("docker exec nopanel-mariadb mariadb-admin ping 2>/dev/null", timeout=10)
+            if "alive" in r.stdout:
+                mariadb_ready = True
+        if apache_ready and mariadb_ready:
+            break
+        # Check for crash-looping containers and restart them once
+        restart_check = ssh.run(
+            "docker ps -a --filter 'status=restarting' --format '{{.Names}}' 2>/dev/null",
+            timeout=10,
+        )
+        if restart_check.stdout.strip():
+            for name in restart_check.stdout.strip().splitlines():
+                logger.warning("Container %s is restart-looping, restarting it", name)
+                ssh.run(f"docker restart {name} 2>&1", timeout=30)
+        time.sleep(3)
+
+    logger.info("Readiness: apache=%s mariadb=%s", apache_ready, mariadb_ready)
 
     # Log container status and any crash logs for diagnostics
     logger.info("Container status: %s", _run(ssh, "docker ps -a --format '{{.Names}} {{.Status}}' 2>/dev/null"))
@@ -604,16 +632,50 @@ def _pull_and_start_services(ssh: SSHRunner) -> None:
     logger.info("Listening ports: %s", _run(ssh, "ss -tlnp 2>/dev/null | grep -E ':80|:443|:3306' || echo 'none'"))
 
 
+@pytest.fixture(scope="class")
+def services_vm(almalinux_vm) -> SSHRunner:
+    """Class-scoped: revert to clean snapshot and start services once per class.
+
+    Tests within a service class share the same running containers instead of
+    each doing a full snapshot-revert + image-pull + build + service-up cycle.
+    The 'clean' snapshot already includes pre-pulled base images (see conftest),
+    so only the build + up steps run here.
+    """
+    manager, runner = almalinux_vm
+    # Revert to clean snapshot once for the whole class
+    try:
+        manager.revert_snapshot("clean")
+        runner.host = manager.ip
+        runner.disconnect()
+        runner.connect(retries=30, delay=3)
+    except Exception as e:
+        logger.warning("Snapshot revert failed, continuing: %s", e)
+
+    # Wait for Docker daemon to be ready after snapshot revert
+    for attempt in range(20):
+        r = runner.run("docker info 2>/dev/null && echo READY || echo WAITING", timeout=10)
+        if "READY" in r.stdout:
+            break
+        time.sleep(2)
+    else:
+        pytest.skip("Docker daemon not ready after snapshot revert")
+
+    _pull_and_start_services(runner)
+    yield runner
+
+
 class TestApacheServesPages:
     """Verify Apache actually serves HTTP pages for configured domains."""
 
-    def test_apache_serves_static_page(self, nopanel_on_vm: SSHRunner):
-        ssh = nopanel_on_vm
-        _pull_and_start_services(ssh)
+    def test_apache_serves_static_page(self, services_vm: SSHRunner):
+        ssh = services_vm
 
         # Create docroot and a static HTML file
         _run(ssh, "mkdir -p /home/alice/web/example.com/public_html")
         _run(ssh, 'echo "<h1>Hello from nopanel</h1>" > /home/alice/web/example.com/public_html/index.html')
+        # Apache runs as www-data (uid 82); files created by root need to be
+        # owned by alice so the vhost (which runs as alice) can read them
+        _run(ssh, "chown -R alice:alice /home/alice/web")
 
         # Apache should serve it on port 80 (host network mode)
         time.sleep(5)
@@ -627,13 +689,13 @@ class TestApacheServesPages:
             f"Expected 'Hello from nopanel' in response. Got: {result.stdout}"
         )
 
-    def test_apache_serves_php_page(self, nopanel_on_vm: SSHRunner):
-        ssh = nopanel_on_vm
-        _pull_and_start_services(ssh)
+    def test_apache_serves_php_page(self, services_vm: SSHRunner):
+        ssh = services_vm
 
         # Create docroot and a PHP file
         _run(ssh, "mkdir -p /home/alice/web/example.com/public_html")
         _run(ssh, 'echo "<?php echo phpversion();" > /home/alice/web/example.com/public_html/info.php')
+        _run(ssh, "chown -R alice:alice /home/alice/web")
 
         time.sleep(5)
         result = ssh.run("curl -s http://localhost/info.php 2>&1", timeout=30)
@@ -648,23 +710,30 @@ class TestApacheServesPages:
 class TestMariaDBAcceptsConnections:
     """Verify MariaDB container accepts connections."""
 
-    def test_mariadb_responds_to_ping(self, nopanel_on_vm: SSHRunner):
-        ssh = nopanel_on_vm
-        _pull_and_start_services(ssh)
+    def test_mariadb_responds_to_ping(self, services_vm: SSHRunner):
+        ssh = services_vm
+
+        # Read root password from generated env file (required since we set one)
+        env = _run(ssh, "cat /etc/nopanel/generated/mariadb.env")
+        password = ""
+        for line in env.splitlines():
+            if line.startswith("MARIADB_ROOT_PASSWORD="):
+                password = line.split("=", 1)[1]
+                break
+        assert password, f"No root password found in mariadb.env: {env}"
 
         # Wait for MariaDB to be ready
         time.sleep(10)
         result = ssh.run(
-            "docker exec nopanel-mariadb mariadb-admin ping 2>&1",
+            f"docker exec nopanel-mariadb mariadb-admin ping -p{password} 2>&1",
             timeout=30,
         )
         assert "mysqld is alive" in result.stdout, (
             f"MariaDB not responding. Output: {result.stdout}\n{result.stderr}"
         )
 
-    def test_mariadb_accepts_root_login(self, nopanel_on_vm: SSHRunner):
-        ssh = nopanel_on_vm
-        _pull_and_start_services(ssh)
+    def test_mariadb_accepts_root_login(self, services_vm: SSHRunner):
+        ssh = services_vm
 
         time.sleep(10)
         # Read root password from generated env file
@@ -688,9 +757,8 @@ class TestMariaDBAcceptsConnections:
 class TestServiceLifecycle:
     """Verify full service up/down/restart cycle."""
 
-    def test_service_restart(self, nopanel_on_vm: SSHRunner):
-        ssh = nopanel_on_vm
-        _pull_and_start_services(ssh)
+    def test_service_restart(self, services_vm: SSHRunner):
+        ssh = services_vm
 
         # Verify containers are running
         containers = _run(ssh, "docker ps --format '{{.Names}}' 2>/dev/null")

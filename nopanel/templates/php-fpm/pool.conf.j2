@@ -5,8 +5,8 @@
 user = {{ user }}
 group = {{ user }}
 listen = {{ socket_path }}
-listen.owner = apache
-listen.group = apache
+listen.owner = www-data
+listen.group = www-data
 pm = dynamic
 pm.max_children = 50
 pm.start_servers = 5

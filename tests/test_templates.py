@@ -120,16 +120,16 @@ class TestRenderPhpFpmPool:
         assert "user = alice" in result
         assert "/var/run/php-fpm/php82-www.sock" in result
 
-    def test_pool_config_uses_apache(self):
-        """Pool config should use apache for listen.owner/group (matching httpd:2.4-alpine)."""
+    def test_pool_config_uses_www_data(self):
+        """Pool config should use www-data for listen.owner/group (matching httpd:2.4-alpine)."""
         result = render_php_fpm_pool(
             domain="example.com",
             user="alice",
             socket_path="/var/run/php-fpm/php82-www.sock",
             php_version="8.2",
         )
-        assert "listen.owner = apache" in result
-        assert "listen.group = apache" in result
+        assert "listen.owner = www-data" in result
+        assert "listen.group = www-data" in result
 
 
 class TestRenderCompose:
@@ -344,8 +344,8 @@ class TestRenderHttpdBase:
     def test_httpd_config_has_complete_directives(self):
         """httpd.conf should include User, Group, ServerAdmin, DirectoryIndex, ErrorLog."""
         result = render_httpd_base()
-        assert "User apache" in result
-        assert "Group apache" in result
+        assert "User www-data" in result
+        assert "Group www-data" in result
         assert "ServerAdmin" in result
         assert "DirectoryIndex" in result
         assert "ErrorLog" in result

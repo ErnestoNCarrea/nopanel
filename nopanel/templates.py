@@ -249,7 +249,6 @@ def _mariadb_volumes() -> list[str]:
     """Volume mounts for the MariaDB container."""
     return [
         "/var/lib/mysql:/var/lib/mysql:rw",
-        "/var/run:/var/run:rw",
     ]
 
 

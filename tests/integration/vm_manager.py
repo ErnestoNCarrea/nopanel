@@ -26,14 +26,22 @@ ALMALINUX9_URL = (
     "AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
 )
 
-# Default VM resources
+# Default VM resources — kept minimal for dev notebooks (see A/B/E in DRIFT/AGENTS)
 DEFAULT_VCPUS = 2
-DEFAULT_MEMORY_MB = 4096
-DEFAULT_DISK_GB = 20
+DEFAULT_MEMORY_MB = 3072
+DEFAULT_DISK_GB = 16
 
 # Where to cache base images
 IMAGE_CACHE_DIR = Path.home() / ".cache" / "nopanel-integration" / "images"
-WORK_DIR = Path("/tmp") / "nopanel-integration"
+# Work dir holds the qcow2 overlay + base image copy. Must NOT be on tmpfs
+# (RAM-backed) — the overlay grows as the VM writes and would consume host RAM.
+# Override with NOPANEL_INT_WORK_DIR env var if needed.
+WORK_DIR = Path(
+    os.environ.get(
+        "NOPANEL_INT_WORK_DIR",
+        str(Path.home() / ".cache" / "nopanel-integration" / "work"),
+    )
+)
 
 
 class VMManager:
@@ -86,6 +94,48 @@ class VMManager:
 
     # -- Overlay management -----------------------------------------------
 
+    def _ensure_qemu_access(self, path: Path) -> None:
+        """Grant the qemu user traverse+read access to a path.
+
+        WORK_DIR lives under ~/.cache (drwx------), so the qemu process
+        (uid 107) can't traverse the directory chain to reach qcow2/iso
+        files. We use ACLs to grant qemu search (x) on each parent dir
+        and read (r) on files — narrower than chmod o+x which would open
+        the path to all users.
+        """
+        import stat as stat_mod
+
+        # Walk the ENTIRE chain from the target up to /, collecting every
+        # directory that lacks o+x. We can't break early at the first dir
+        # with o+x because a parent further up may still be closed (e.g.
+        # work_dir is 0o755 but ~/.cache is 0o700).
+        dirs_to_fix: list[Path] = []
+        current = path if path.is_dir() else path.parent
+        while current != current.parent:
+            try:
+                st = current.stat()
+                if not (st.st_mode & stat_mod.S_IXOTH):
+                    dirs_to_fix.append(current)
+            except PermissionError:
+                dirs_to_fix.append(current)
+            current = current.parent
+
+        # Apply ACLs root-to-leaf so traversal works at every level.
+        # setfacl on dirs we don't own (e.g. /, /home) will fail silently —
+        # those already have o+x so they don't need fixing.
+        for d in reversed(dirs_to_fix):
+            subprocess.run(
+                ["setfacl", "-m", "u:qemu:x", str(d)],
+                capture_output=True, text=True,
+            )
+
+        # Grant read access on the file itself (if it's a file)
+        if path.is_file():
+            subprocess.run(
+                ["setfacl", "-m", "u:qemu:r", str(path)],
+                capture_output=True, text=True,
+            )
+
     def create_overlay(self) -> Path:
         """Create a COW overlay on top of the cached base image.
 
@@ -119,11 +169,19 @@ class VMManager:
         # Ensure libvirt (qemu user) can access the files
         os.chmod(self.overlay_path, 0o644)
         os.chmod(self.work_dir, 0o755)
+        # Grant qemu traverse access on the directory chain (WORK_DIR may
+        # be under ~/.cache which is drwx------)
+        self._ensure_qemu_access(self.overlay_path)
+        self._ensure_qemu_access(local_base)
         logger.info("Created overlay: %s", self.overlay_path)
         return self.overlay_path
 
     def _ensure_storage_pool(self) -> None:
-        """Ensure a libvirt dir storage pool exists for the work directory."""
+        """Ensure a libvirt dir storage pool exists for the work directory.
+
+        If a pool with the same name exists but points at a stale path
+        (e.g. WORK_DIR moved), it is destroyed and redefined.
+        """
         pool_name = self.name
         # Check if pool already exists
         result = subprocess.run(
@@ -131,12 +189,25 @@ class VMManager:
             capture_output=True, text=True,
         )
         if result.returncode == 0:
-            # Pool exists, ensure it's running and refresh volumes
-            subprocess.run(["sudo", "virsh", "pool-start", pool_name],
-                           capture_output=True, text=True)
-            subprocess.run(["sudo", "virsh", "pool-refresh", pool_name],
-                           capture_output=True, text=True)
-            return
+            # Pool exists — verify its target path matches the current work_dir
+            xml_result = subprocess.run(
+                ["sudo", "virsh", "pool-dumpxml", pool_name],
+                capture_output=True, text=True,
+            )
+            current_path = self.work_dir.resolve()
+            if xml_result.returncode == 0 and str(current_path) in xml_result.stdout:
+                # Path matches — just start and refresh
+                subprocess.run(["sudo", "virsh", "pool-start", pool_name],
+                               capture_output=True, text=True)
+                subprocess.run(["sudo", "virsh", "pool-refresh", pool_name],
+                               capture_output=True, text=True)
+                return
+            # Path mismatch — destroy and redefine below
+            logger.info(
+                "Storage pool '%s' points at stale path, redefining to %s",
+                pool_name, current_path,
+            )
+            self._destroy_storage_pool()
 
         # Create the pool
         pool_xml = (
@@ -221,6 +292,8 @@ class VMManager:
 
         self.create_overlay()
         self._ensure_storage_pool()
+        # Ensure qemu can read the seed ISO (may be under ~/.cache/...)
+        self._ensure_qemu_access(seed_iso)
 
         pool_name = self.name
         cmd = [
@@ -385,8 +458,18 @@ class VMManager:
             capture_output=True, text=True, timeout=120,
         )
         logger.info("Reverted to snapshot '%s' for VM %s", name, self.name)
-        # Re-detect IP after revert (VM may get a new DHCP lease)
-        self._ip = self._wait_for_ip(timeout=120)
+        # Re-detect IP after revert. The VM usually keeps its DHCP lease, so
+        # check the cached IP first via domifaddr before falling back to a
+        # short poll (was 120s — far too long for the common case).
+        if self._ip:
+            result = subprocess.run(
+                ["sudo", "virsh", "domifaddr", self.name],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode == 0 and self._ip in result.stdout:
+                logger.debug("VM %s kept cached IP %s after revert", self.name, self._ip)
+                return
+        self._ip = self._wait_for_ip(timeout=30)
 
     def delete_snapshot(self, name: str = "clean") -> None:
         subprocess.run(

@@ -1,0 +1,17 @@
+# /etc/sudoers.d/nopanel-integration
+#
+# Allows the nopanel integration tests to manage KVM/libvirt VMs and the
+# libvirt NAT/forwarding iptables rules without a password prompt.
+#
+# Install:
+#   sudo install -m 440 tests/integration/nopanel-integration.sudoers \
+#       /etc/sudoers.d/nopanel-integration
+# Verify:
+#   sudo visudo -c -f /etc/sudoers.d/nopanel-integration
+#
+# Scope: only the three binaries the tests invoke via sudo.
+# - virsh:        VM + storage pool + snapshot lifecycle
+# - virt-install: VM boot
+# - iptables:     NAT MASQUERADE + FORWARD rules for 192.168.122.0/24
+
+ecarrea ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install, /usr/bin/iptables

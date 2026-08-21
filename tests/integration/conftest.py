@@ -176,10 +176,31 @@ def almalinux_vm(vm_manager: VMManager, ssh_keypair: tuple[Path, str]) -> tuple[
     # Install nopanel on the VM
     _install_nopanel_on_vm(runner)
 
-    # Create snapshot for fast revert
+    # Pre-pull base Docker images so the 'clean' snapshot includes them.
+    # Without this, every service test re-pulls httpd/mariadb/php after each
+    # snapshot revert — a major network/CPU/disk hog on dev machines.
+    # All PHP versions (8.2-8.5) are needed because nopanel starts all
+    # configured PHP-FPM containers by default, not just the ones in use.
+    logger.info("Pre-pulling base Docker images on VM...")
+    _base_images = [
+        "httpd:2.4-alpine",
+        "mariadb:lts",
+        "php:8.2-fpm-alpine",
+        "php:8.3-fpm-alpine",
+        "php:8.4-fpm-alpine",
+        "php:8.5-fpm-alpine",
+    ]
+    for image in _base_images:
+        r = runner.run(f"docker pull {image} 2>&1 | tail -1", timeout=300)
+        if r.exit_code != 0:
+            logger.warning("Failed to pre-pull %s: %s", image, (r.stderr or r.stdout)[:200])
+        else:
+            logger.info("  pre-pulled %s", image)
+
+    # Create snapshot for fast revert (includes cached Docker images)
     try:
         vm_manager.create_snapshot("clean")
-        logger.info("Snapshot 'clean' created")
+        logger.info("Snapshot 'clean' created (with base Docker images)")
     except Exception as e:
         logger.warning("Failed to create snapshot: %s", e)
 

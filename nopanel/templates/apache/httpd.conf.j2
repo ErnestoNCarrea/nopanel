@@ -34,9 +34,9 @@ LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
 LoadModule {{ mod }}_module modules/mod_{{ mod }}.so
 {% endfor %}
 
-# Apache user/group in httpd:2.4-alpine
-User apache
-Group apache
+# Apache user/group — httpd:2.4-alpine uses www-data (uid 82), not apache
+User www-data
+Group www-data
 
 ServerAdmin admin@localhost
 ServerTokens Prod
